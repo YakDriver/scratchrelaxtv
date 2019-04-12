@@ -1,0 +1,130 @@
+language: python
+stages:
+  - lint
+  - test
+  - deploy
+python:
+  - "3.5"
+  - "3.6"
+
+env:
+  global:
+    - THIS_REPO="${TRAVIS_REPO_SLUG#*/}"
+    - OWNER=plus3it
+    - RELEASE_BRANCH=master
+    - RELEASE_VERSION=$(grep -E '^current_version' $TRAVIS_BUILD_DIR/.bumpversion.cfg | sed 's/^.*= //')
+    - PRIOR_VERSION=$(git describe --abbrev=0 --tags)
+
+stage: test
+cache: pip
+before_cache:
+  - rm -f $HOME/.cache/pip/log/debug.log
+install:
+  - pip install -r requirements/pip.txt
+  - pip install -r requirements/test.txt
+  - pip install --editable .
+script:
+  - pytest
+jobs:
+  include:
+    - stage: lint
+      python: 3.6
+      install:
+        - pip install -r requirements/pip.txt
+        - pip install -r requirements/lint.txt
+        - pip install --editable .
+      script:
+        - pylint scratchrelaxtv
+        - pylint tests/*py
+        - flake8
+    - stage: test
+      python: 3.7
+      dist: xenial
+    - stage: test
+      os: windows
+      language: sh
+      python: 3.7
+      before_install:
+        - choco install python3
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        - python -m pip install virtualenv
+        - virtualenv $HOME/venv
+        - source $HOME/venv/Scripts/activate
+      install:
+        - python -m pip install -r requirements/pip.txt
+        - python -m pip install -r requirements/test.txt
+        - pip install --editable .
+    - stage: test
+      os: osx
+      osx_image: xcode10.1
+      language: sh
+      python: 3.7
+      # Perform the manual steps on osx to install python3 and activate venv
+      before_install:
+        - python3 -m pip install virtualenv
+        - virtualenv $HOME/venv -p python3
+        - source $HOME/venv/bin/activate
+      cache:
+        directories:
+          - $HOME/Library/Caches/Homebrew
+          - /usr/local/Homebrew/Library/Homebrew
+          - /usr/local/Homebrew/Library/Taps
+          - $HOME/.cache/pip
+    - stage: deploy
+      if: branch = env(RELEASE_BRANCH) AND type != pull_request
+      python: 3.6
+      env:
+        - JOB="Deploy to Test PyPI"
+      install: skip
+      script:
+        - sed -i -E "s/^(version = )(.*)/\1\2.$TRAVIS_BUILD_NUMBER/" $TRAVIS_BUILD_DIR/setup.cfg
+      deploy:
+        - provider: pypi
+          server: https://test.pypi.org/legacy/
+          distributions: sdist bdist_wheel
+          user: plus3it
+          password:
+            secure: EYOVDbp6hOPNqPa9KtnFUwt7Wl1IDh1kCRylsrRgGARIzmuaZ/8DC94pEsevff2Wvq5GSLWgZka57bxxyWz7Ck3BEeYrjFI7Z1oFE+ML8/CsmghwLdBkuL4WqPE1UmKExrQdvwRUeYB0qCZl4zJ4K5ndkC+u4GX/9evL9D3H4bNXFt0pt6yJBC0XqG4Eb1QdZ4Dui9AXTUwWcRirsXy6UKY54li/4T2EtxSPPzMUVPta/4aVE6UuW2Dk5se4c4SxnpuW69rQkYjeB3j7ipPimW0053hhVvT6DyCiMecTfgGgzVihiep0HISOh06frxQoFeJFVPwGurNxwQ4sVXaPA9wATQtrmfgFjOwD5EX5TEBlpYn1EshJhk+PiDmgZcTTanK8Z5CI/nwrWqxkhIfAlSdLqGTqG5MCT52+LNYxVXwWM7aTyzl5RuqSGmjGwgBXlYlSNnTRDLZFwwW4ntT5fqOY883Q2GfZ+RSmqofFTC1x+/KyfCSTqG3L114OhZ5jjOIsFMcKi6yRdXY37V3FJw0FhM1EiWOOkgP5VYKQ0WpEgbbuF+oCUBfd3Sr/DVHBsQ8TgIVzQBHtFEIvvuNLTzyfCMQFZYI7gN7+AhNO5lHHLb6PXTZ6tsc+jp0qO1SMBwiH2MsoEYs3sRDmxCiBoa6I6PFc3ex4EaOcYpBuoWM=
+          skip_cleanup: true
+          skip_upload_docs: true
+          on:
+            branch: $RELEASE_BRANCH
+            condition: '"$PRIOR_VERSION" = "$RELEASE_VERSION"'
+    - stage: deploy
+      if: branch = env(RELEASE_BRANCH) AND type != pull_request
+      python: 3.6
+      env:
+        - JOB="Deploy to GitHub Releases"
+        - RELEASE_BODY="* [$THIS_REPO v$RELEASE_VERSION CHANGELOG](https://github.com/$OWNER/$THIS_REPO/compare/$PRIOR_VERSION...$RELEASE_VERSION)"
+      install: skip
+      script:
+        - echo RELEASE_BODY=$RELEASE_BODY
+      deploy:
+        - provider: releases
+          name: $RELEASE_VERSION
+          tag_name: $RELEASE_VERSION
+          target_commitish: $TRAVIS_COMMIT
+          body: $RELEASE_BODY
+          draft: false
+          skip_cleanup: true
+          api_key:
+            secure: EAzZCo6RRcdheI4/uEz6RiAqySWUp77g6sOirtbV3kPoJC0HA5ws1+qzWkMNKghQMo6y1eBxwU/tv6CkjXGygZKrs/ZpgfjTtd0Mqe12HN8+0JX9MV/UHpzh3M10QthqflpV+WsG0iAyZvlkJnvtXIFHSjTQMedB7EyPdicZniXXBdGbPoJWU2PBbmA0TI5U6ksP+DtXrvNWP9zpQq06mqO0KPH4AhfB2A638fOJWBbDhWH9BukzIJgh6qvpx6601LGX5uGEe+FdEj74Y/UZOZwjCkVzFDX/Cm+6wS9d2WISjAXO5wISltY3swff0kavwywKrezcRATdHh7lJKu2l+kWa9hf1gAIyJHIf/0qBOIT/TqfVfpKWZ3/VIY4/+OnTIWdUhHGFIliDOduxMPgMzYfp49wU6acIwl67I3FBT9j/SGG6Zsk15Gb9d0nzJvzc7gvwGyba7uPZ807/nYFP4wBXWc14maAbe3sgpL8sCrr6pJby3TNdH97RQpAayIPF9Y2AA5x/MbjVmRQTi93WR5Y5Ov0jdcxFMLgSqKhY93g3CUROiM7HV34vlcYCJUxLiUKCeG7pTIDL6+n660S4Ky933KH2Gf6yoGxVdHMRB58y2aneqdCKoIO0ReqBp8Su6jspF2XcRmYp6hkRMCfo5Msc/lluglVESoTf28wBKU=
+          on:
+            branch: $RELEASE_BRANCH
+            condition: '"$PRIOR_VERSION" != "$RELEASE_VERSION"'
+    - stage: deploy
+      if: tag is present
+      python: 3.6
+      env:
+        - JOB="Deploy to PyPI"      
+      install: skip
+      script: skip
+      deploy:
+          - provider: pypi
+            distributions: sdist bdist_wheel
+            user: plus3it
+            password:
+              secure: k8/KhImebgJIvSYUfhNVwKGj+AvI24hxztG/MIlBA9alXIlaaw+/UYAwkvZlNWP3bicr3iEem4erGfMd3SZnc1eNlGeKFuKKn7pvqB2h6wQrFPuEaCrr6TZCZsLOE9qrCVpKxRx2squ56syhfhOkBCwgVs2agwcA4kcOK/XRld/cDXm5CgsZgnlXqVJ/Lij+TLSPl37C73lB3EZntEpXyYRyJ4qBpU0yXOC1zGC1uJyF5fycGk2aHthGcoxZKn/YpW4PeF3alAgi3uE2EfkgHk5rTXaw+pBAeVltyKW8ZpIhj15zkDCUwbeRtOtay21JdUWrY2onc5F3xhCWqDQUWXyS+AdF18DYxxGbHlDETHEms1DBbsIDU/4bDVQrSzsFlRBNvzuitJHxplateZWYUBbLkeYofli6gHxhepl4uFngSyfoAC5OnSXa2hxBXkB1atfDOTEZO0yBN1mk6BuGjqJwCl/kIYU6tRtSzRo0h1jiX7QDMlI97jvNc4M6kvTb6h6m7bt6fa2z4cUnydZg2sBWmlRai0ruOIdAiKQdo8Lxg5YSZE2/F0JGIQicrc9LSbdIoiCqEXfrFRSSiEWLc+APSx2K4+CrgkCVDxhpNvuu5V1hbwjHmG2eZwUKnxEoH6jXbUAokKe0QcHqtJCRg6n+H+aIHoZhbOs/OCtoJlM=
+            skip_upload_docs: true
+            on:
+              tags: true
