@@ -4,7 +4,6 @@
 
 
 import os
-import filecmp
 from contextlib import contextmanager
 from scratchrelaxtv import cli, VarExtractor, EXIT_OKAY
 
@@ -50,5 +49,9 @@ def test_same_content():
 
         extractor = VarExtractor(args)
         assert extractor.extract() == EXIT_OKAY
-        assert filecmp.cmp("variables.tf", filename)
+        with open("variables.tf", "r", encoding='utf_8') as file_handle:
+            first_list = file_handle.read().splitlines()
+        with open("variables.1.tf", "r", encoding='utf_8') as file_handle:
+            second_list = file_handle.read().splitlines()
+        assert first_list == second_list
         os.remove(filename)

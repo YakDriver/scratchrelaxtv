@@ -76,7 +76,7 @@ class VarExtractor():
     def write_file(self):
         """Output vars to .tf file."""
         self._find_non_existing_filename()
-        with open(self.args.output, "w") as file_handle:
+        with open(self.args.output, "w", encoding='utf_8') as file_handle:
             for tf_var in self.tf_vars:
                 file_handle.write('variable "')
                 file_handle.write(remove_prefix(tf_var, "var."))
