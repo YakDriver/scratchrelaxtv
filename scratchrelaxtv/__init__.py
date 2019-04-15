@@ -69,6 +69,11 @@ class VarExtractor():
             if self.args.force or not os.path.isfile(self.args.output):
                 return
             filename, file_extension = os.path.splitext(self.args.output)
+            pattern = re.compile(r'(.*)\.(\d+)')
+            search = pattern.search(filename)
+            if search:
+                filename = search.group(1)
+                index = int(search.group(2)) + 1
             self.args.output = ''.join([
                 filename, '.', str(index), file_extension])
             index += 1

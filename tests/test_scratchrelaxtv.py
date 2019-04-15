@@ -36,7 +36,6 @@ def test_no_force():
         assert not os.path.isfile(filename)
         extractor = VarExtractor(args)
         assert extractor.extract() == EXIT_OKAY
-        assert extractor.extract() == EXIT_OKAY
         assert os.path.isfile(filename)
         os.remove(filename)
 
@@ -45,9 +44,13 @@ def test_same_content():
     """Test extracting variables."""
     with change_dir("tests"):
         filename = "variables.1.tf"
-        args = cli.parse_args(["-f", "-o", filename])
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+        args = cli.parse_args(["-fa", "-o", filename])
 
         extractor = VarExtractor(args)
+
         assert extractor.extract() == EXIT_OKAY
         with open("variables.tf", "r", encoding='utf_8') as file_handle:
             first_list = file_handle.read().splitlines()
