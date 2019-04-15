@@ -89,7 +89,6 @@ jobs:
           skip_upload_docs: true
           on:
             branch: $RELEASE_BRANCH
-            condition: '"$PRIOR_VERSION" = "$RELEASE_VERSION"'
     - stage: deploy
       if: branch = env(RELEASE_BRANCH) AND type != pull_request
       python: 3.6
