@@ -1,2 +1,2 @@
 # scratchrelaxtv
-Convenience tool to extract and list variables from HCL (.tf) files.
+:tv: Terraform developer tool to extract variables and create variables.tf files.
