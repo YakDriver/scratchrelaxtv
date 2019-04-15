@@ -35,7 +35,7 @@ If you are proposing a feature:
 
 To set up scratchrelaxtv for local development:
 
-1.  Fork [scratchrelaxtv](https://github.com/plus3it/scratchrelaxtv) (look for the
+1.  Fork [scratchrelaxtv](https://github.com/YakDriver/scratchrelaxtv) (look for the
     "Fork" button).
 
 2.  Clone your fork locally:

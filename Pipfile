@@ -9,6 +9,6 @@ pylint = "*"
 pytest = "*"
 
 [packages]
-argparse = "*"
+scratchrelaxtv = {editable = true,path = "."}
 
 [requires]

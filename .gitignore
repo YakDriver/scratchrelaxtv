@@ -2,6 +2,7 @@
 # work directories
 # executable
 .scratchrelaxtv/
+tests/variables.*.tf
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
