@@ -1,4 +1,5 @@
-# scratchrelaxtv
+![scratch relax tv](https://github.com/YakDriver/scratchrelaxtv/raw/master/assets/srt.gif "Extract HCL Vars")
+
 Terraform developer tool to extract variables and create `variables.tf` files.
 
 

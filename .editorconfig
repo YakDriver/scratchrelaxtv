@@ -9,6 +9,14 @@ indent_style = space
 indent_size = 4
 charset = utf-8
 
+[*.gif]
+end_of_line = ignore
+trim_trailing_whitespace = ignore
+insert_final_newline = ignore
+indent_style = ignore
+indent_size = ignore
+charset = ignore
+
 [*.md]
 trim_trailing_whitespace = false
 
