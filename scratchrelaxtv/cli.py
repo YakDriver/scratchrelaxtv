@@ -26,7 +26,7 @@ def parse_args(args):
     parser.add_argument("-i", "--input", default="main.tf",
                         help="file to extract vars from")
     parser.add_argument("-o", "--output", default="variables.tf",
-                        help="file (or stdout) to write extracted vars to")
+                        help="file to write extracted vars to")
     parser.add_argument("-f", "--force", default=False, action="store_true",
                         help="overwrite existing out file")
     group = parser.add_mutually_exclusive_group()
