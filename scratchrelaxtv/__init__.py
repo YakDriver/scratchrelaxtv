@@ -18,7 +18,7 @@ import os
 import re
 
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 EXIT_OKAY = 0
 EXIT_NOT_OKAY = 1
 
