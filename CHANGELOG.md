@@ -1,6 +1,13 @@
 # CHANGE LOG
 
+## 0.1.2 - 2019.04.17
 
-## 0.1.0 - 2019.04.12
+* Add simple docs
+
+## 0.1.1 - 2019.04.16
+
+* Initial working version
+
+## 0.1.0 - 2019.04.15
 
 * Initial release!
