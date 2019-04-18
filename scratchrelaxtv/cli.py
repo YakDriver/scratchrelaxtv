@@ -23,12 +23,14 @@ import scratchrelaxtv
 def parse_args(args):
     """Parse args list."""
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--input", default="main.tf",
-                        help="file to extract vars from")
-    parser.add_argument("-o", "--output", default="variables.tf",
+    parser.add_argument("-i", "--input", help="file to extract vars from")
+    parser.add_argument("-o", "--output",
                         help="file to write extracted vars to")
     parser.add_argument("-f", "--force", default=False, action="store_true",
                         help="overwrite existing out file")
+    parser.add_argument("-m", "--modstub", default=False, action="store_true",
+                        help="create module usage stub")
+    parser.add_argument("-n", "--modname", help="name to use in module stub")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-a", "--asc", action="store_true",
                        help="sort output variables in ascending order")
@@ -42,7 +44,11 @@ def main():
     """Entry point for scratchrelaxtv CLI."""
     args = parse_args(sys.argv[1:])
 
-    extractor = scratchrelaxtv.VarExtractor(args)
+    extractor = None
+    if not args.modstub:
+        extractor = scratchrelaxtv.VarExtractor(args)
+    else:
+        extractor = scratchrelaxtv.StubMaker(args)
     sys.exit(extractor.extract())
 
 
