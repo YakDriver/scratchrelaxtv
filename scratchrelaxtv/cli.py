@@ -44,7 +44,6 @@ def main():
     """Entry point for scratchrelaxtv CLI."""
     args = parse_args(sys.argv[1:])
 
-
     extractor = None
     if not args.modstub:
         extractor = scratchrelaxtv.VarExtractor(args)
