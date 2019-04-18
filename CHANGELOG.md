@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 0.1.3 - 2019.04.17
+
+* Add module stub capability
+
 ## 0.1.2 - 2019.04.17
 
 * Add simple docs
