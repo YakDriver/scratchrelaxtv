@@ -5,7 +5,7 @@
 
 import os
 from contextlib import contextmanager
-from scratchrelaxtv import cli, VarExtractor, EXIT_OKAY
+from scratchrelaxtv import cli, StubMaker, VarExtractor, EXIT_OKAY
 
 
 @contextmanager
@@ -17,13 +17,24 @@ def change_dir(path):
     os.chdir(old_dir)
 
 
-def test_parser():
+def test_var_defaults():
     """Test CLI default arguments."""
     with change_dir("tests"):
         args = cli.parse_args([])
-        assert args.input == "main.tf"
-        assert args.output == "variables.tf"
-        assert not args.force
+        extractor = VarExtractor(args)
+        assert extractor.args.input == "main.tf"
+        assert extractor.args.output == "variables.tf"
+        assert not extractor.args.force
+
+
+def test_stub_defaults():
+    """Test CLI default arguments."""
+    with change_dir("tests"):
+        args = cli.parse_args([])
+        maker = StubMaker(args)
+        assert maker.args.input == "variables.tf"
+        assert maker.args.output == "modstub.tf"
+        assert not maker.args.force
 
 
 def test_no_force():
@@ -40,7 +51,7 @@ def test_no_force():
         os.remove(filename)
 
 
-def test_same_content():
+def test_same_content_vars():
     """Test extracting variables."""
     with change_dir("tests"):
         filename = "variables.1.tf"
@@ -54,7 +65,27 @@ def test_same_content():
         assert extractor.extract() == EXIT_OKAY
         with open("variables.tf", "r", encoding='utf_8') as file_handle:
             first_list = file_handle.read().splitlines()
-        with open("variables.1.tf", "r", encoding='utf_8') as file_handle:
+        with open(filename, "r", encoding='utf_8') as file_handle:
+            second_list = file_handle.read().splitlines()
+        assert first_list == second_list
+        os.remove(filename)
+
+
+def test_same_content_maker():
+    """Test extracting variables."""
+    with change_dir("tests"):
+        filename = "modstub.1.tf"
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+        args = cli.parse_args(["-mfa", "-o", filename])
+
+        maker = StubMaker(args)
+
+        assert maker.extract() == EXIT_OKAY
+        with open("modstub.tf", "r", encoding='utf_8') as file_handle:
+            first_list = file_handle.read().splitlines()
+        with open(filename, "r", encoding='utf_8') as file_handle:
             second_list = file_handle.read().splitlines()
         assert first_list == second_list
         os.remove(filename)
