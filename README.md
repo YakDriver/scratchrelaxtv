@@ -1,6 +1,21 @@
 ![scratch relax tv](https://github.com/YakDriver/scratchrelaxtv/raw/master/assets/srt.gif "Extract HCL Vars")
 
-Terraform module development tool. Extract variables from  `variables.tf` files 
+<p>
+    <a href="./LICENSE" alt="License">
+        <img src="https://img.shields.io/github/license/YakDriver/scratchrelaxtv.svg" /></a>
+    <a href="http://travis-ci.org/YakDriver/scratchrelaxtv" alt="Build status">
+        <img src="https://travis-ci.org/YakDriver/scratchrelaxtv.svg?branch=master" /></a>
+    <a href="https://pypi.python.org/pypi/scratchrelaxtv" alt="Python versions">
+        <img src="https://img.shields.io/pypi/pyversions/scratchrelaxtv.svg" /></a>
+    <a href="https://pypi.python.org/pypi/scratchrelaxtv" alt="Version">
+        <img src="https://img.shields.io/pypi/v/scratchrelaxtv.svg" /></a>
+</p>
+
+Terraform module development tool.
+
+1. Extract variables from `main.tf` and create `variables.tf` files
+1. Create a module use stub from a `variables.tf` file
+1. Delete extra *scratchrelaxtv* files
 
 
 ## simply
