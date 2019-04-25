@@ -31,6 +31,8 @@ def parse_args(args):
     parser.add_argument("-m", "--modstub", default=False, action="store_true",
                         help="create module usage stub")
     parser.add_argument("-n", "--modname", help="name to use in module stub")
+    parser.add_argument("-r", "--remove", default=False, action="store_true",
+                        help="remove all modstub.tf and variables.x.tf files")
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-a", "--asc", action="store_true",
                        help="sort output variables in ascending order")
@@ -45,7 +47,9 @@ def main():
     args = parse_args(sys.argv[1:])
 
     extractor = None
-    if not args.modstub:
+    if args.remove:
+        scratchrelaxtv.remove_files()
+    elif not args.modstub:
         extractor = scratchrelaxtv.VarExtractor(args)
     else:
         extractor = scratchrelaxtv.StubMaker(args)

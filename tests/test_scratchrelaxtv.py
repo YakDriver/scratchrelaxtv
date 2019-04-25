@@ -5,7 +5,8 @@
 
 import os
 from contextlib import contextmanager
-from scratchrelaxtv import cli, StubMaker, VarExtractor, EXIT_OKAY
+from scratchrelaxtv import cli, StubMaker, VarExtractor, EXIT_OKAY, \
+    remove_files
 
 
 @contextmanager
@@ -89,3 +90,33 @@ def test_same_content_maker():
             second_list = file_handle.read().splitlines()
         assert first_list == second_list
         os.remove(filename)
+
+
+def test_removal():
+    """Test removing files."""
+    with change_dir("tests"):
+        tmpdir = "tmpdir"
+        os.mkdir(tmpdir)
+
+        with open(os.path.join(tmpdir, "modstub.tf"), "w") as file_handle:
+            file_handle.write("hello")
+
+        with open(os.path.join(tmpdir, "variables.5.tf"), "w") as file_handle:
+            file_handle.write("hello")
+
+        with open(os.path.join(tmpdir, "modstub.2.tf"), "w") as file_handle:
+            file_handle.write("hello")
+
+        with open(os.path.join(tmpdir, "dont_delete.tf"), "w") as file_handle:
+            file_handle.write("hello")
+
+        with change_dir(tmpdir):
+            remove_files()
+
+        assert not os.path.isfile(os.path.join(tmpdir, "modstub.tf"))
+        assert not os.path.isfile(os.path.join(tmpdir, "variables.5.tf"))
+        assert not os.path.isfile(os.path.join(tmpdir, "modstub.2.tf"))
+        assert os.path.isfile(os.path.join(tmpdir, "dont_delete.tf"))
+
+        os.remove(os.path.join(tmpdir, "dont_delete.tf"))
+        os.rmdir(tmpdir)
