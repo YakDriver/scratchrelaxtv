@@ -18,7 +18,7 @@ import os
 import re
 
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"
 EXIT_OKAY = 0
 EXIT_NOT_OKAY = 1
 
@@ -38,6 +38,7 @@ def remove_files():
     for root, _, files in os.walk(os.getcwd()):
         for file in filter(lambda x: re.match(pattern, x), files):
             os.remove(os.path.join(root, file))
+            logger.info("removed file: %s", os.path.join(root, file))
 
 
 class BassExtractor():

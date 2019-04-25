@@ -49,6 +49,7 @@ def main():
     extractor = None
     if args.remove:
         scratchrelaxtv.remove_files()
+        sys.exit(scratchrelaxtv.EXIT_OKAY)
     elif not args.modstub:
         extractor = scratchrelaxtv.VarExtractor(args)
     else:
