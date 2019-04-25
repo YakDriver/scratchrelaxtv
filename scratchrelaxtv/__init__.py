@@ -18,7 +18,7 @@ import os
 import re
 
 
-__version__ = "0.1.3"
+__version__ = "0.2.0"
 EXIT_OKAY = 0
 EXIT_NOT_OKAY = 1
 
@@ -30,6 +30,14 @@ logger = logging.getLogger(__name__)        # pylint: disable=invalid-name
 def remove_prefix(text, prefix):
     """Remove prefix from a string."""
     return text[text.startswith(prefix) and len(prefix):]
+
+
+def remove_files():
+    """Remove files from the os that look like scratchrelaxtv files."""
+    pattern = r'^(variables\.\d+|modstub(\.\d+|))\.tf$'
+    for root, _, files in os.walk(os.getcwd()):
+        for file in filter(lambda x: re.match(pattern, x), files):
+            os.remove(os.path.join(root, file))
 
 
 class BassExtractor():
