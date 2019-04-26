@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 0.3.0 - 2019.04.25
+
+* Add functionality to check existing `main.tf` and `variables.tf` for missing variables
+
 ## 0.2.1 - 2019.04.25
 
 * Fix inconsequential error thrown when removing files

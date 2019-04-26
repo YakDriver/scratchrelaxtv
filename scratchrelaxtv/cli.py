@@ -28,16 +28,20 @@ def parse_args(args):
                         help="file to write extracted vars to")
     parser.add_argument("-f", "--force", default=False, action="store_true",
                         help="overwrite existing out file")
-    parser.add_argument("-m", "--modstub", default=False, action="store_true",
-                        help="create module usage stub")
+    task = parser.add_mutually_exclusive_group()
+    task.add_argument("-m", "--modstub", default=False, action="store_true",
+                      help="create module usage stub")
     parser.add_argument("-n", "--modname", help="name to use in module stub")
-    parser.add_argument("-r", "--remove", default=False, action="store_true",
-                        help="remove all modstub.tf and variables.x.tf files")
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("-a", "--asc", action="store_true",
-                       help="sort output variables in ascending order")
-    group.add_argument("-d", "--desc", action="store_true",
-                       help="sort output variables in descending order")
+    task.add_argument("-r", "--remove", default=False, action="store_true",
+                      help="remove all modstub.tf, variables.#.tf files")
+    task.add_argument("-c", "--check", default=False, action="store_true",
+                      help="check that all vars are listed")
+
+    sort_order = parser.add_mutually_exclusive_group()
+    sort_order.add_argument("-a", "--asc", action="store_true",
+                            help="sort output variables in ascending order")
+    sort_order.add_argument("-d", "--desc", action="store_true",
+                            help="sort output variables in descending order")
 
     return parser.parse_args(args)
 
@@ -50,10 +54,13 @@ def main():
     if args.remove:
         scratchrelaxtv.remove_files()
         sys.exit(scratchrelaxtv.EXIT_OKAY)
-    elif not args.modstub:
-        extractor = scratchrelaxtv.VarExtractor(args)
-    else:
+    elif args.modstub:
         extractor = scratchrelaxtv.StubMaker(args)
+    elif args.check:
+        extractor = scratchrelaxtv.Checker(args)
+    else:
+        extractor = scratchrelaxtv.VarExtractor(args)
+
     sys.exit(extractor.extract())
 
 
