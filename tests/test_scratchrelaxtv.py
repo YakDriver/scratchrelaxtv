@@ -5,7 +5,7 @@
 
 import os
 from contextlib import contextmanager
-from scratchrelaxtv import cli, StubMaker, VarExtractor, EXIT_OKAY, \
+from scratchrelaxtv import cli, Checker, StubMaker, VarExtractor, EXIT_OKAY,\
     remove_files
 
 
@@ -94,6 +94,7 @@ def test_same_content_maker():
 
 def test_removal():
     """Test removing files."""
+    # should probably move to mocking
     with change_dir("tests"):
         tmpdir = "tmpdir"
         os.mkdir(tmpdir)
@@ -120,3 +121,22 @@ def test_removal():
 
         os.remove(os.path.join(tmpdir, "dont_delete.tf"))
         os.rmdir(tmpdir)
+
+
+def test_check():
+    """Test checking for missing variables."""
+    with change_dir("tests"):
+
+        args = cli.parse_args([
+            "-c",
+            "-i",
+            "main_missing.tf",
+            "-o",
+            "variables_missing.tf",
+        ])
+
+        checker = Checker(args)
+        missing = checker.find_missing()
+
+        assert len(missing['main']) == 1 and missing['main'][0] == "create"
+        assert len(missing['var']) == 1 and missing['var'][0] == "extra_var"

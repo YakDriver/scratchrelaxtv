@@ -14,41 +14,185 @@
 Terraform module development tool.
 
 1. Extract variables from `main.tf` and create `variables.tf` files
+1. Find missing variables in `variables.tf` and `main.tf` based on each other
 1. Create a module use stub from a `variables.tf` file
 1. Delete extra *scratchrelaxtv* files
 
+# workflows
 
-## simply
+**Original module development**: 
+1. Write `main.tf` with whatever variables you need
+1. Run *scratchrelaxtv* to generate `variables.tf`
+1. Fill in descriptions, defaults, etc. in `variables.tf`
+1. Run `terraform fmt` to prettify everything
+
+**Cleanup module**:
+1. Run *scratchrelaxtv* in folder with `main.tf` and `variables.tf` to find missing variables
+1. Using `-cf` option, automatically add missing vars to `variables.tf`
+1. Fill in descriptions, defaults, etc. in `variables.tf` for newly added vars
+1. Run `terraform fmt` to prettify everything
+
+# install
 
 ```
 pip install scratchrelaxtv
 ```
 
-In a directory with a `main.tf` file, run *scratchrelaxtv*:
+# examples
 
-```console
-$ ls
-main.tf
-$ scratchrelaxtv
-$ ls
-main.tf			variables.tf
+## generate `variables.tf`
+
+By default, *scratchrelaxtv* looks for `main.tf` and will generate a `variables.tf` file. Variables will be in the same order in `variables.tf` as they were in `main.tf`. There are options to sort variables. You can `--force` to overwrite an existing `variables.tf` file. Otherwise, *scratchrelaxtv* will create new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
+
+Assume this `main.tf`:
+```hcl
+resource "aws_s3_bucket" "this" {
+  count  = "${var.create_bucket ? 1 : 0}"
+  bucket = "${var.bucket}"
+  region = "${var.region}"
+}
 ```
 
-## details
+Run *scratchrelaxtv*:
+```console
+$ scratchrelaxtv
+2019-04-26 08:02:54,011 - INFO - creating variables.tf file
+2019-04-26 08:02:54,011 - INFO - input file: main.tf
+2019-04-26 08:02:54,011 - INFO - output file: variables.tf
+2019-04-26 08:02:54,011 - INFO - not forcing overwrite of output file
+2019-04-26 08:02:54,011 - INFO - not ordering output file
+```
 
-### variables.tf
+The generated `variables.tf`:
+```hcl
+variable "create_bucket" {
+  description = ""
+  type        = "string"
+  default     = ""
+}
 
-By default, it looks for `main.tf` and will keep variables in the resulting `variables.tf` in the order found in the `main.tf`. If variables are included more than once, they will only be listed once in the resulting `variables.tf`. If you do not `--force` overwriting, *scratchrelaxtv* will create new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
+variable "bucket" {
+  description = ""
+  type        = "string"
+  default     = ""
+}
 
-### modstub.tf
+variable "region" {
+  description = ""
+  type        = "string"
+  default     = ""
+}
+```
 
-*scratchrelaxtv* can also be used to generate a module usage stub. By default, it looks for `variables.tf` and will keep variables in the resulting `modstub.tf` in the order found in the `variables.tf`. If variables are included more than once, they will only be listed once in the resulting `modstub.tf`. If you do not `--force` overwriting, *scratchrelaxtv* will create new `modstub.tf` files with each run: `modstub.1.tf`, `modstub.2.tf` and so on.
+## Find and fix missing variables
 
-### remove files
+Assume you already have a `main.tf` and a `variables.tf`. In this example, the `variables.tf` is missing the `region` variable.
 
-*scratchrelaxtv* can also tidy up your directories by removing its own extra generated files. Presumably it will only remove files you no longer need but be careful. This chart shows examples of what would be deleted or not.
+`main.tf`:
+```hcl
+resource "aws_s3_bucket" "this" {
+  bucket = "${var.bucket}"
+  region = "${var.region}"
+}
+```
 
-*scratchrelaxtv* removes files in the current directory _and subdirectories_.
+`variables.tf`:
+```hcl
+variable "bucket" {
+  description = "The bucket where the stuff will be stored"
+  type        = "string"
+  default     = ""
+}
+```
+
+Run *scratchrelaxtv* to automatically add any missing variables:
+
+```console
+$ scratchrelaxtv -cf
+2019-04-26 08:21:27,289 - INFO - checking for missing variables
+2019-04-26 08:21:27,289 - INFO - input file: main.tf
+2019-04-26 08:21:27,289 - INFO - output file: variables.tf
+2019-04-26 08:21:27,289 - INFO - forcing overwrite of output file
+2019-04-26 08:21:27,289 - INFO - not ordering output file
+2019-04-26 08:21:27,290 - WARNING - input file main.tf is missing variables:
+region
+```
+
+Now, the `variables.tf` looks like this:
+```hcl
+variable "bucket" {
+  description = "The bucket where the stuff will be stored"
+  type        = "string"
+  default     = ""
+}
+
+variable "region" {
+  description = ""
+  type        = "string"
+  default     = ""
+}
+```
+
+## Create a stub for using the module
+
+By default, when creating a stub, *scratchrelaxtv* looks for `variables.tf`.
+
+Assume this `variables.tf`:
+```hcl
+variable "id" {
+  description = "The ID of the resource"
+  type        = "string"
+  default     = ""
+}
+
+variable "bucket" {
+  description = "The bucket where the stuff will be stored"
+  type        = "string"
+  default     = ""
+}
+
+variable "region" {
+  description = "The AWS region where the bucket lives"
+  type        = "string"
+  default     = ""
+}
+```
+
+Run *scratchrelaxtv* with the module stub option:
+```console
+$ scratchrelaxtv -m
+2019-04-26 08:09:27,147 - INFO - creating module usage stub
+2019-04-26 08:09:27,147 - INFO - input file: variables.tf
+2019-04-26 08:09:27,147 - INFO - output file: modstub.tf
+2019-04-26 08:09:27,147 - INFO - not forcing overwrite of output file
+2019-04-26 08:09:27,147 - INFO - not ordering output file
+```
+
+The generated `modstub.tf`:
+```hcl
+module "tests2" {
+  source = "../tests2"
+
+  providers = {
+    aws = "aws"
+  }
+
+  id     = "${local.id}"
+  bucket = "${local.bucket}"
+  region = "${local.region}"
+}
+```
+
+
+## remove files
+
+```console
+$ scratchrelaxtv -r
+```
+
+*scratchrelaxtv* can also tidy up your directories by removing its own extra generated files. Presumably it will only remove files you no longer need but *be careful*. This chart shows examples of what would be deleted or not. 
+
+**NOTE**: *scratchrelaxtv* removes files in the current directory _and subdirectories_.
 
 | Filename | Deleted? |
 | -------- | ------ |
@@ -62,14 +206,14 @@ By default, it looks for `main.tf` and will keep variables in the resulting `var
 | modstub | no |
 | modstub..tf | no |
 
-### help
+# help
 
 *scratchrelaxtv* includes help:
 
 ```console
 $ scratchrelaxtv --help
 usage: scratchrelaxtv [-h] [-i INPUT] [-o OUTPUT] [-f] [-m] [-n MODNAME] [-r]
-                      [-a | -d]
+                      [-c] [-a | -d]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -81,7 +225,8 @@ optional arguments:
   -m, --modstub         create module usage stub
   -n MODNAME, --modname MODNAME
                         name to use in module stub
-  -r, --remove          remove all modstub.tf and variables.x.tf files
+  -r, --remove          remove all modstub.tf, variables.#.tf files
+  -c, --check           check that all vars are listed
   -a, --asc             sort output variables in ascending order
   -d, --desc            sort output variables in descending order
 ```
