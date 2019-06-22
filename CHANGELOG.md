@@ -1,5 +1,9 @@
 # CHANGE LOG
 
+## 0.4.0 - 2019.06.21
+
+* Add feature to generate dot-env (`.env`) file
+
 ## 0.3.0 - 2019.04.25
 
 * Add functionality to check existing `main.tf` and `variables.tf` for missing variables

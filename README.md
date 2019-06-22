@@ -13,12 +13,25 @@
 
 Terraform module development tool.
 
-1. Extract variables from `main.tf` and create `variables.tf` files
+1. Extract variables from `main.tf` and generate a `variables.tf` file
 1. Find missing variables in `variables.tf` and `main.tf` based on each other
-1. Create a module use stub from a `variables.tf` file
+1. Generate a module use stub from a `variables.tf` file
+1. Generate a .env file with variables from `main.tf`
 1. Delete extra *scratchrelaxtv* files
 
+# install
+
+```
+pip install scratchrelaxtv
+```
+
+# tip
+
+Once installed, you can just type "relaxtv."
+
 # workflows
+
+Here are two example workflows using *scratchrelaxtv*.
 
 **Original module development**: 
 1. Write `main.tf` with whatever variables you need
@@ -32,17 +45,11 @@ Terraform module development tool.
 1. Fill in descriptions, defaults, etc. in `variables.tf` for newly added vars
 1. Run `terraform fmt` to prettify everything
 
-# install
-
-```
-pip install scratchrelaxtv
-```
-
 # examples
 
-## generate `variables.tf`
+## example: generate `variables.tf`
 
-By default, *scratchrelaxtv* looks for `main.tf` and will generate a `variables.tf` file. Variables will be in the same order in `variables.tf` as they were in `main.tf`. There are options to sort variables. You can `--force` to overwrite an existing `variables.tf` file. Otherwise, *scratchrelaxtv* will create new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
+By default, *scratchrelaxtv* looks for `main.tf` and will generate a `variables.tf` file. Variables will be in the same order in `variables.tf` as they were in `main.tf`. There are options to sort variables. You can `--force` to overwrite an existing `variables.tf` file. Otherwise, *scratchrelaxtv* will generate new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
 
 Assume this `main.tf`:
 ```hcl
@@ -56,7 +63,7 @@ resource "aws_s3_bucket" "this" {
 Run *scratchrelaxtv*:
 ```console
 $ scratchrelaxtv
-2019-04-26 08:02:54,011 - INFO - creating variables.tf file
+2019-04-26 08:02:54,011 - INFO - generating variables file
 2019-04-26 08:02:54,011 - INFO - input file: main.tf
 2019-04-26 08:02:54,011 - INFO - output file: variables.tf
 2019-04-26 08:02:54,011 - INFO - not forcing overwrite of output file
@@ -84,7 +91,7 @@ variable "region" {
 }
 ```
 
-## Find and fix missing variables
+## example: find and fix missing variables
 
 Assume you already have a `main.tf` and a `variables.tf`. In this example, the `variables.tf` is missing the `region` variable.
 
@@ -133,9 +140,9 @@ variable "region" {
 }
 ```
 
-## Create a stub for using the module
+## example: generate a stub for using the module
 
-By default, when creating a stub, *scratchrelaxtv* looks for `variables.tf`.
+By default, when generating a stub, *scratchrelaxtv* looks for `variables.tf`.
 
 Assume this `variables.tf`:
 ```hcl
@@ -161,7 +168,7 @@ variable "region" {
 Run *scratchrelaxtv* with the module stub option:
 ```console
 $ scratchrelaxtv -m
-2019-04-26 08:09:27,147 - INFO - creating module usage stub
+2019-04-26 08:09:27,147 - INFO - generating module usage stub
 2019-04-26 08:09:27,147 - INFO - input file: variables.tf
 2019-04-26 08:09:27,147 - INFO - output file: modstub.tf
 2019-04-26 08:09:27,147 - INFO - not forcing overwrite of output file
@@ -183,8 +190,36 @@ module "tests2" {
 }
 ```
 
+## example: generate a `.env` (dotenv) file
 
-## remove files
+By default, when generating a `.env` file, *scratchrelaxtv* looks for `variables.tf`.
+
+Assume this `variables.tf`:
+```hcl
+resource "aws_s3_bucket" "this" {
+  bucket = "${var.bucket}"
+  region = "${var.region}"
+}
+```
+
+Run *scratchrelaxtv* with the generate `.env` and sort-ascending options:
+```console
+$ scratchrelaxtv -ea
+2019-06-21 20:01:35,362 - INFO - generating .env file
+2019-06-21 20:01:35,362 - INFO - input file: main.tf
+2019-06-21 20:01:35,362 - INFO - output file: .env
+2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
+2019-06-21 20:01:35,362 - INFO - ordering output file ascending
+```
+
+The generated `.env`:
+```bash
+unset "${!TF_VAR_@}"
+TF_VAR_bucket=replace
+TF_VAR_region=replace
+```
+
+## example: remove files
 
 ```console
 $ scratchrelaxtv -r
@@ -213,7 +248,7 @@ $ scratchrelaxtv -r
 ```console
 $ scratchrelaxtv --help
 usage: scratchrelaxtv [-h] [-i INPUT] [-o OUTPUT] [-f] [-m] [-n MODNAME] [-r]
-                      [-c] [-a | -d]
+                      [-c] [-e] [-a | -d]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -222,11 +257,12 @@ optional arguments:
   -o OUTPUT, --output OUTPUT
                         file to write extracted vars to
   -f, --force           overwrite existing out file
-  -m, --modstub         create module usage stub
+  -m, --modstub         generate module usage stub
   -n MODNAME, --modname MODNAME
                         name to use in module stub
   -r, --remove          remove all modstub.tf, variables.#.tf files
   -c, --check           check that all vars are listed
+  -e, --env             generate .env with Terraform vars
   -a, --asc             sort output variables in ascending order
   -d, --desc            sort output variables in descending order
 ```

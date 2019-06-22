@@ -2,12 +2,12 @@
 """scratchrelaxtv command line interface (CLI).
 
 scratchrelaxtv (anagram of extract-hcl-vars) is a Terraform development
-convenience tool that extracts vars from HCL and creates an HCL variables file
-with the extracted vars. The point is to make creating Terraform modules
+convenience tool that extracts vars from HCL and generates an HCL variables
+file with the extracted vars. The point is to make creating Terraform modules
 easier.
 
 Running scratchrelaxtv without any options reads a main.tf, extracts the vars
-from that file, and creates a variables.tf file with those variables.
+from that file, and generates a variables.tf file with those variables.
 
 Options include:
     -i, -o  changing input/output file names
@@ -28,14 +28,17 @@ def parse_args(args):
                         help="file to write extracted vars to")
     parser.add_argument("-f", "--force", default=False, action="store_true",
                         help="overwrite existing out file")
+
     task = parser.add_mutually_exclusive_group()
     task.add_argument("-m", "--modstub", default=False, action="store_true",
-                      help="create module usage stub")
+                      help="generate module usage stub")
     parser.add_argument("-n", "--modname", help="name to use in module stub")
     task.add_argument("-r", "--remove", default=False, action="store_true",
                       help="remove all modstub.tf, variables.#.tf files")
     task.add_argument("-c", "--check", default=False, action="store_true",
                       help="check that all vars are listed")
+    task.add_argument("-e", "--env", default=False, action="store_true",
+                      help="generate .env with Terraform vars")
 
     sort_order = parser.add_mutually_exclusive_group()
     sort_order.add_argument("-a", "--asc", action="store_true",
@@ -58,6 +61,8 @@ def main():
         extractor = scratchrelaxtv.StubMaker(args)
     elif args.check:
         extractor = scratchrelaxtv.Checker(args)
+    elif args.env:
+        extractor = scratchrelaxtv.EnvGenerator(args)
     else:
         extractor = scratchrelaxtv.VarExtractor(args)
 

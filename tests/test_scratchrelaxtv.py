@@ -5,8 +5,8 @@
 
 import os
 from contextlib import contextmanager
-from scratchrelaxtv import cli, Checker, StubMaker, VarExtractor, EXIT_OKAY,\
-    remove_files
+from scratchrelaxtv import cli, Checker, StubMaker, VarExtractor,\
+    EnvGenerator, EXIT_OKAY, remove_files
 
 
 @contextmanager
@@ -140,3 +140,23 @@ def test_check():
 
         assert len(missing['main']) == 1 and missing['main'][0] == "create"
         assert len(missing['var']) == 1 and missing['var'][0] == "extra_var"
+
+
+def test_gen_env():
+    """Test extracting variables."""
+    with change_dir("tests"):
+        filename = ".env.2"
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+        args = cli.parse_args(["-fea", "-o", filename])
+
+        extractor = EnvGenerator(args)
+
+        assert extractor.extract() == EXIT_OKAY
+        with open(".env.1", "r", encoding='utf_8') as file_handle:
+            first_list = file_handle.read().splitlines()
+        with open(filename, "r", encoding='utf_8') as file_handle:
+            second_list = file_handle.read().splitlines()
+        assert first_list == second_list
+        os.remove(filename)
