@@ -27,7 +27,7 @@ pip install scratchrelaxtv
 
 # tip
 
-Once installed, you can just type "relaxtv."
+Once installed, you can run *scratchrelaxtv* by typing either `relaxtv` or `scratchrelaxtv`.
 
 # workflows
 
@@ -62,7 +62,7 @@ resource "aws_s3_bucket" "this" {
 
 Run *scratchrelaxtv*:
 ```console
-$ scratchrelaxtv
+$ relaxtv
 2019-04-26 08:02:54,011 - INFO - generating variables file
 2019-04-26 08:02:54,011 - INFO - input file: main.tf
 2019-04-26 08:02:54,011 - INFO - output file: variables.tf
@@ -115,7 +115,7 @@ variable "bucket" {
 Run *scratchrelaxtv* to automatically add any missing variables:
 
 ```console
-$ scratchrelaxtv -cf
+$ relaxtv -cf
 2019-04-26 08:21:27,289 - INFO - checking for missing variables
 2019-04-26 08:21:27,289 - INFO - input file: main.tf
 2019-04-26 08:21:27,289 - INFO - output file: variables.tf
@@ -167,7 +167,7 @@ variable "region" {
 
 Run *scratchrelaxtv* with the module stub option:
 ```console
-$ scratchrelaxtv -m
+$ relaxtv -m
 2019-04-26 08:09:27,147 - INFO - generating module usage stub
 2019-04-26 08:09:27,147 - INFO - input file: variables.tf
 2019-04-26 08:09:27,147 - INFO - output file: modstub.tf
@@ -204,7 +204,7 @@ resource "aws_s3_bucket" "this" {
 
 Run *scratchrelaxtv* with the generate `.env` and sort-ascending options:
 ```console
-$ scratchrelaxtv -ea
+$ relaxtv -ea
 2019-06-21 20:01:35,362 - INFO - generating .env file
 2019-06-21 20:01:35,362 - INFO - input file: main.tf
 2019-06-21 20:01:35,362 - INFO - output file: .env
@@ -222,7 +222,7 @@ TF_VAR_region=replace
 ## example: remove files
 
 ```console
-$ scratchrelaxtv -r
+$ relaxtv -r
 ```
 
 *scratchrelaxtv* can also tidy up your directories by removing its own extra generated files. Presumably it will only remove files you no longer need but *be careful*. This chart shows examples of what would be deleted or not. 
@@ -246,7 +246,7 @@ $ scratchrelaxtv -r
 *scratchrelaxtv* includes help:
 
 ```console
-$ scratchrelaxtv --help
+$ relaxtv --help
 usage: scratchrelaxtv [-h] [-i INPUT] [-o OUTPUT] [-f] [-m] [-n MODNAME] [-r]
                       [-c] [-e] [-a | -d]
 
