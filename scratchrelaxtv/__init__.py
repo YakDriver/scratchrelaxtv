@@ -265,7 +265,7 @@ class EnvGenerator(BassExtractor):
             file_handle.write('unset "${!TF_VAR_@}"\n')
             for tf_var in self.tf_vars:
                 file_handle.write("".join([
-                    'TF_VAR_',
+                    'export TF_VAR_',
                     tf_var,
                     "=replace\n"]))
 
