@@ -160,3 +160,23 @@ def test_gen_env():
             second_list = file_handle.read().splitlines()
         assert first_list == second_list
         os.remove(filename)
+
+
+def test_gen_tfvars():
+    """Test extracting variables."""
+    with change_dir("tests"):
+        filename = "terraform.2.tfvars"
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+        args = cli.parse_args(["-fta", "-o", filename])
+
+        extractor = EnvGenerator(args)
+
+        assert extractor.extract() == EXIT_OKAY
+        with open("terraform.1.tfvars", "r", encoding='utf_8') as file_handle:
+            first_list = file_handle.read().splitlines()
+        with open(filename, "r", encoding='utf_8') as file_handle:
+            second_list = file_handle.read().splitlines()
+        assert first_list == second_list
+        os.remove(filename)

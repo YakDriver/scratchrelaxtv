@@ -20,7 +20,7 @@ import os
 import re
 
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 EXIT_OKAY = 0
 EXIT_NOT_OKAY = 1
 
@@ -72,6 +72,8 @@ class BassExtractor():
             logger.info("checking for missing variables")
         elif self.args.env:
             logger.info("generating .env file")
+        elif self.args.tfvars:
+            logger.info("generating .tfvars file")
         else:
             logger.info("generating variables file")
 
@@ -249,14 +251,16 @@ class EnvGenerator(BassExtractor):
         if not args.input:
             args.input = "main.tf"
 
-        if not args.output:
+        if not args.output and args.env:
             args.output = ".env"
+
+        if not args.output and args.tfvars:
+            args.output = "terraform.tfvars"
 
         super().__init__(args)
 
-    def write_file(self):
+    def _write_env(self):
         """Output vars to .env file."""
-        self._find_non_existing_filename()
         with open(self.args.output, "w", encoding='utf_8') as file_handle:
             file_handle.write('unset "${!TF_VAR_@}"\n')
             for tf_var in self.tf_vars:
@@ -264,6 +268,22 @@ class EnvGenerator(BassExtractor):
                     'TF_VAR_',
                     tf_var,
                     "=replace\n"]))
+
+    def _write_tfvars(self):
+        """Output vars to .tfvars file."""
+        with open(self.args.output, "w", encoding='utf_8') as file_handle:
+            for tf_var in self.tf_vars:
+                file_handle.write("".join([
+                    tf_var,
+                    ' = "replace"\n']))
+
+    def write_file(self):
+        """Output vars to file."""
+        self._find_non_existing_filename()
+        if self.args.env:
+            self._write_env()
+        elif self.args.tfvars:
+            self._write_tfvars()
 
     def extract(self):
         """Extract vars from .tf file."""
