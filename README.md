@@ -25,9 +25,11 @@ Terraform module development tool.
 pip install scratchrelaxtv
 ```
 
-# tip
+# tips
 
 Once installed, you can run *scratchrelaxtv* by typing either `relaxtv` or `scratchrelaxtv`.
+
+Find out more about Terraform workflows and using *scratchrelaxtv* [here](https://medium.com/@dirk.avery/terraform-secure-simple-sweet-development-workflow-d7188d33d9cf).
 
 # workflows
 
