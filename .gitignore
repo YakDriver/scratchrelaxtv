@@ -3,6 +3,8 @@
 # executable
 .scratchrelaxtv/
 tests/variables.*.tf
+tests/modstub.*.tf
+tests/terraform.*.tfvars
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

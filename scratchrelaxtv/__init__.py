@@ -48,18 +48,16 @@ class BassExtractor():
     A class that extracts variables from Terraform HCL files to make creating
     Terraform modules easier.
     """
-    main_phrase_find = r'(\[")?\$\{([^\}]*)\}("\])?'
+
     # valid var names:
     # "A name must start with a letter and may contain only letters,
     # digits, underscores, and dashes."
-    main_token_find = r'\bvar\.([a-zA-Z][a-zA-Z0-9_-]*)\b'
-    var_phrase_find = r'(\n)?variable "([^"]+)"'
-    var_token_find = r'(.+)'
+    var_regex = r'\bvar\.([a-zA-Z][a-zA-Z0-9_-]*)\b'
+    variable_regex = r'\bvariable "([^"]+)"'
 
     def __init__(self, args):
         self.args = args
         self.tf_vars = []
-        self.tf_lists = []
         self.log_arguments()
 
     def log_arguments(self):
@@ -116,41 +114,26 @@ class BassExtractor():
         return entire_file
 
     @staticmethod
-    def find_vars(haystack, phrase, token):
+    def find_vars(haystack, regex):
         """Extract vars from .tf file."""
 
-        interpol_pattern = re.compile(phrase)
-        interpolations = interpol_pattern.findall(haystack)
-
-        var_pattern = re.compile(token)
-        tf_vars = []
-        tf_lists = []
-        for interpolation in interpolations:
-            new_vars = var_pattern.findall(interpolation[1])
-            tf_vars += new_vars
-            if interpolation[0]:  # see if it looks like a list
-                tf_lists += new_vars
-
+        var_pattern = re.compile(regex)
+        tf_vars = var_pattern.findall(haystack)
         tf_vars = list(dict.fromkeys(tf_vars))
-        tf_lists = list(dict.fromkeys(tf_lists))
 
-        return {'vars': tf_vars, 'lists': tf_lists}
+        return tf_vars
 
-    def find_vars_in_file(self, phrase, token):
+    def find_vars_in_file(self, regex):
         """Extract vars from .tf file."""
 
-        var_dict = BassExtractor.find_vars(
+        self.tf_vars = BassExtractor.find_vars(
             BassExtractor.get_file_contents(self.args.input),
-            phrase,
-            token)
+            regex)
 
         if self.args.asc:
-            var_dict['vars'].sort()
+            self.tf_vars.sort()
         elif self.args.desc:
-            var_dict['vars'].sort(reverse=True)
-
-        self.tf_vars = var_dict['vars']
-        self.tf_lists = var_dict['lists']
+            self.tf_vars.sort(reverse=True)
 
 
 class VarExtractor(BassExtractor):
@@ -178,17 +161,13 @@ class VarExtractor(BassExtractor):
                 file_handle.write(remove_prefix(tf_var, "var."))
                 file_handle.write('" {\n')
                 file_handle.write('  description = ""\n')
-                if tf_var in self.tf_lists:
-                    file_handle.write('  type        = "list"\n')
-                    file_handle.write('  default     = []\n')
-                else:
-                    file_handle.write('  type        = "string"\n')
-                    file_handle.write('  default     = ""\n')
+                file_handle.write('  type        = "string"\n')
+                file_handle.write('  default     = ""\n')
                 file_handle.write('}\n\n')
 
     def extract(self):
         """Extract vars from .tf file."""
-        self.find_vars_in_file(self.main_phrase_find, self.main_token_find)
+        self.find_vars_in_file(self.var_regex)
         self.write_file()
 
         return EXIT_OKAY
@@ -234,7 +213,7 @@ class StubMaker(BassExtractor):
 
     def extract(self):
         """Extract vars from .tf file."""
-        self.find_vars_in_file(self.var_phrase_find, self.var_token_find)
+        self.find_vars_in_file(self.variable_regex)
         self.write_file()
 
         return EXIT_OKAY
@@ -287,7 +266,7 @@ class EnvGenerator(BassExtractor):
 
     def extract(self):
         """Extract vars from .tf file."""
-        self.find_vars_in_file(self.main_phrase_find, self.main_token_find)
+        self.find_vars_in_file(self.var_regex)
         self.write_file()
 
         return EXIT_OKAY
@@ -317,29 +296,23 @@ class Checker(BassExtractor):
                 file_handle.write(tf_var)
                 file_handle.write('" {\n')
                 file_handle.write('  description = ""\n')
-                if tf_var in self.tf_lists:
-                    file_handle.write('  type        = "list"\n')
-                    file_handle.write('  default     = []\n')
-                else:
-                    file_handle.write('  type        = "string"\n')
-                    file_handle.write('  default     = ""\n')
+                file_handle.write('  type        = "string"\n')
+                file_handle.write('  default     = ""\n')
                 file_handle.write('}\n')
 
     def find_missing(self):
         """Find missing vars in .tf files."""
         main_vars = self.find_vars(
             self.get_file_contents(self.args.input),
-            self.main_phrase_find,
-            self.main_token_find)
+            self.var_regex)
 
         var_vars = self.find_vars(
             self.get_file_contents(self.args.output),
-            self.var_phrase_find,
-            self.var_token_find)
+            self.variable_regex)
 
         return {
-            'main': list(set(main_vars['vars']) - set(var_vars['vars'])),
-            'var': list(set(var_vars['vars']) - set(main_vars['vars']))
+            'main': list(set(main_vars) - set(var_vars)),
+            'var': list(set(var_vars) - set(main_vars))
         }
 
     def extract(self):
