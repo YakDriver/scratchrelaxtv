@@ -24,7 +24,7 @@ data "aws_iam_policy_document" "this" {
     condition {
       test     = "StringEquals"
       variable = "aws:PrincipalOrgID"
-      values   = ["${var.org_ids}"]
+      values   = [var.org_ids]
     }
   }
 }
@@ -38,5 +38,5 @@ resource "aws_s3_bucket" "this" {
   policy                 = "${data.aws_iam_policy_document.this.json}"
   versioning             = "${var.versioning}"
   tags                   = "${var.tags}"
-  acceleration_status    = "var.not_a_var"
+  acceleration_status    = "var.now_a_var"
 }

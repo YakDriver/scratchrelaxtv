@@ -1,5 +1,14 @@
 # CHANGE LOG
 
+## 0.5.2 - 2019.07.19
+
+* Add compatibility with HCL2 / Terraform 0.12.x variables (variables without `"${}"`)
+* Remove feature to automatically set lists default value to an empty list (does not work well with HCL2-style variables)
+
+## 0.5.0 - 2019.07.02
+
+* Add feature to generate Terraform variables (`.tfvars`) file
+
 ## 0.4.0 - 2019.06.21
 
 * Add feature to generate dot-env (`.env`) file

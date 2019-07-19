@@ -22,10 +22,16 @@ variable "create_keystore_bucket" {
   default     = ""
 }
 
+variable "now_a_var" {
+  description = ""
+  type        = "string"
+  default     = ""
+}
+
 variable "org_ids" {
   description = ""
-  type        = "list"
-  default     = []
+  type        = "string"
+  default     = ""
 }
 
 variable "prefix" {
