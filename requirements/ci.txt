@@ -1,1 +1,1 @@
-virtualenv==16.7.3
+virtualenv==16.7.4
