@@ -41,20 +41,6 @@ jobs:
       python: 3.7
       dist: xenial
     - stage: test
-      os: windows
-      language: shell
-      env: PATH=/c/Python37:/c/Python37/Scripts:$PATH      
-      before_install:
-        - choco install python --version 3.7.4
-        - python -m pip install --upgrade pip
-        - python -m pip install -r requirements/ci.txt
-        - virtualenv $HOME/venv
-        - source $HOME/venv/Scripts/activate        
-      install:
-        - python -m pip install -r requirements/pip.txt
-        - python -m pip install -r requirements/test.txt
-        - pip install --editable .
-    - stage: test
       os: osx
       osx_image: xcode10.1
       language: sh
