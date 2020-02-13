@@ -1,0 +1,33 @@
+pull_request_rules:
+  - name: automatically approve dependabot pull requests
+    conditions:
+      - author~=dependabot\[bot\]|dependabot-preview\[bot\]
+      - status-success=continuous-integration/travis-ci/pr
+    actions:
+      review:
+        type: APPROVE
+
+  - name: automatically merge dependabot pull requests
+    conditions:
+      - author~=dependabot\[bot\]|dependabot-preview\[bot\]
+      - "#approved-reviews-by>=1"
+    actions:
+      merge:
+        method: merge
+
+pull_request_rules:
+  - name: automatically approve gha-bot pull requests
+    conditions:
+      - author~=github-actions\[bot\]
+      - status-success=continuous-integration/travis-ci/pr
+    actions:
+      review:
+        type: APPROVE
+
+  - name: automatically merge gha-bot pull requests
+    conditions:
+      - author~=github-actions\[bot\]
+      - "#approved-reviews-by>=1"
+    actions:
+      merge:
+        method: merge
