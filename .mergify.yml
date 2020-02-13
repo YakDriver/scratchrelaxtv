@@ -16,7 +16,6 @@ pull_request_rules:
       merge:
         method: merge
 
-pull_request_rules:
   - name: automatically approve gha-bot pull requests
     conditions:
       - author~=github-actions\[bot\]
