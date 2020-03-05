@@ -1,1 +1,1 @@
-virtualenv==20.0.7
+virtualenv==20.0.8
