@@ -161,7 +161,7 @@ class VarExtractor(BassExtractor):
                 file_handle.write(remove_prefix(tf_var, "var."))
                 file_handle.write('" {\n')
                 file_handle.write('  description = ""\n')
-                file_handle.write('  type        = "string"\n')
+                file_handle.write('  type        = string\n')
                 file_handle.write('  default     = ""\n')
                 file_handle.write('}\n\n')
 
@@ -296,7 +296,7 @@ class Checker(BassExtractor):
                 file_handle.write(tf_var)
                 file_handle.write('" {\n')
                 file_handle.write('  description = ""\n')
-                file_handle.write('  type        = "string"\n')
+                file_handle.write('  type        = string\n')
                 file_handle.write('  default     = ""\n')
                 file_handle.write('}\n')
 

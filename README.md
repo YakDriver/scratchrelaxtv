@@ -35,7 +35,7 @@ Find out more about Terraform workflows and using *scratchrelaxtv* [here](https:
 
 Here are two example workflows using *scratchrelaxtv*.
 
-**Original module development**: 
+**Original module development**:
 1. Write `main.tf` with whatever variables you need
 1. Run *scratchrelaxtv* to generate `variables.tf`
 1. Fill in descriptions, defaults, etc. in `variables.tf`
@@ -76,19 +76,19 @@ The generated `variables.tf`:
 ```hcl
 variable "create_bucket" {
   description = ""
-  type        = "string"
+  type        = string
   default     = ""
 }
 
 variable "bucket" {
   description = ""
-  type        = "string"
+  type        = string
   default     = ""
 }
 
 variable "region" {
   description = ""
-  type        = "string"
+  type        = string
   default     = ""
 }
 ```
@@ -109,7 +109,7 @@ resource "aws_s3_bucket" "this" {
 ```hcl
 variable "bucket" {
   description = "The bucket where the stuff will be stored"
-  type        = "string"
+  type        = string
   default     = ""
 }
 ```
@@ -131,13 +131,13 @@ Now, the `variables.tf` looks like this:
 ```hcl
 variable "bucket" {
   description = "The bucket where the stuff will be stored"
-  type        = "string"
+  type        = string
   default     = ""
 }
 
 variable "region" {
   description = ""
-  type        = "string"
+  type        = string
   default     = ""
 }
 ```
@@ -150,19 +150,19 @@ Assume this `variables.tf`:
 ```hcl
 variable "id" {
   description = "The ID of the resource"
-  type        = "string"
+  type        = string
   default     = ""
 }
 
 variable "bucket" {
   description = "The bucket where the stuff will be stored"
-  type        = "string"
+  type        = string
   default     = ""
 }
 
 variable "region" {
   description = "The AWS region where the bucket lives"
-  type        = "string"
+  type        = string
   default     = ""
 }
 ```
@@ -227,7 +227,7 @@ TF_VAR_region=replace
 $ relaxtv -r
 ```
 
-*scratchrelaxtv* can also tidy up your directories by removing its own extra generated files. Presumably it will only remove files you no longer need but *be careful*. This chart shows examples of what would be deleted or not. 
+*scratchrelaxtv* can also tidy up your directories by removing its own extra generated files. Presumably it will only remove files you no longer need but *be careful*. This chart shows examples of what would be deleted or not.
 
 **NOTE**: *scratchrelaxtv* removes files in the current directory _and subdirectories_.
 
