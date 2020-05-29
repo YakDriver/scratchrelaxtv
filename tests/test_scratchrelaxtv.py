@@ -6,7 +6,7 @@
 import os
 from contextlib import contextmanager
 from scratchrelaxtv import cli, Checker, StubMaker, VarExtractor,\
-    EnvGenerator, EXIT_OKAY, remove_files
+    EnvGenerator, EXIT_OKAY, remove_files, TemplateExtractor
 
 
 @contextmanager
@@ -175,6 +175,26 @@ def test_gen_tfvars():
 
         assert extractor.extract() == EXIT_OKAY
         with open("terraform.tfvars", "r", encoding='utf_8') as file_handle:
+            first_list = file_handle.read().splitlines()
+        with open(filename, "r", encoding='utf_8') as file_handle:
+            second_list = file_handle.read().splitlines()
+        assert first_list == second_list
+        os.remove(filename)
+
+
+def test_template():
+    """Test extracting variables."""
+    with change_dir("tests"):
+        filename = "template_vars.1.tf"
+        if os.path.isfile(filename):
+            os.remove(filename)
+
+        args = cli.parse_args(["-fa", "--template", "-o", filename])
+
+        extractor = TemplateExtractor(args)
+
+        assert extractor.extract() == EXIT_OKAY
+        with open("template_vars.tf", "r", encoding='utf_8') as file_handle:
             first_list = file_handle.read().splitlines()
         with open(filename, "r", encoding='utf_8') as file_handle:
             second_list = file_handle.read().splitlines()
