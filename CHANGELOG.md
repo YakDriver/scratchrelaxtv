@@ -1,5 +1,10 @@
 # CHANGE LOG
 
+## 0.6.0 - 2020.05.29
+
+* Output Terraform 0.12.x variables (variables without `"${}"`)
+* Add feature to extract template variables from templates and generate corresponding HCL
+
 ## 0.5.2 - 2019.07.19
 
 * Add compatibility with HCL2 / Terraform 0.12.x variables (variables without `"${}"`)
