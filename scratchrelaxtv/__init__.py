@@ -20,7 +20,7 @@ import os
 import re
 
 
-__version__ = "0.5.14"
+__version__ = "0.6.0"
 EXIT_OKAY = 0
 EXIT_NOT_OKAY = 1
 
@@ -36,6 +36,7 @@ def remove_prefix(text, prefix):
 
 def remove_files():
     """Remove files from the os that look like scratchrelaxtv files."""
+    logger.info("attempting removal of files")
     pattern = r'^(variables\.\d+|modstub(\.\d+|))\.tf$'
     for root, _, files in os.walk(os.getcwd()):
         for file in filter(lambda x: re.match(pattern, x), files):
@@ -61,20 +62,7 @@ class BassExtractor():
         self.log_arguments()
 
     def log_arguments(self):
-        """Log all the attributes of this run."""
-        if self.args.modstub:
-            logger.info("generating module usage stub")
-        elif self.args.remove:
-            logger.info("attempting removal of files")
-        elif self.args.check:
-            logger.info("checking for missing variables")
-        elif self.args.env:
-            logger.info("generating .env file")
-        elif self.args.tfvars:
-            logger.info("generating .tfvars file")
-        else:
-            logger.info("generating variables file")
-
+        """Log the attributes of this run."""
         logger.info("input file: %s", self.args.input)
         logger.info("output file: %s", self.args.output)
 
@@ -143,6 +131,8 @@ class VarExtractor(BassExtractor):
     """
     def __init__(self, args):
         """Instantiate"""
+        logger.info("generating variables file")
+
         # defaults
         if not args.input:
             args.input = "main.tf"
@@ -180,6 +170,8 @@ class StubMaker(BassExtractor):
     """
     def __init__(self, args):
         """Instantiate"""
+        logger.info("generating module usage stub")
+
         # defaults
         if not args.input:
             args.input = "variables.tf"
@@ -226,6 +218,11 @@ class EnvGenerator(BassExtractor):
     """
     def __init__(self, args):
         """Instantiate"""
+        if args.env:
+            logger.info("generating .env file")
+        elif args.tfvars:
+            logger.info("generating .tfvars file")
+
         # defaults
         if not args.input:
             args.input = "main.tf"
@@ -278,6 +275,8 @@ class Checker(BassExtractor):
     """
     def __init__(self, args):
         """Instantiate"""
+        logger.info("checking for missing variables")
+
         # defaults
         if not args.input:
             args.input = "main.tf"
@@ -334,5 +333,50 @@ class Checker(BassExtractor):
                 self.args.output,
                 '\n'.join(missing['var'])
             )
+
+        return EXIT_OKAY
+
+
+class TemplateExtractor(BassExtractor):
+    """
+    A class that extracts variables from templates used with Terraform and
+    creates HCL showing all template variables.
+    """
+
+    var_regex = r'(?<!\$)\${([a-zA-Z][a-zA-Z0-9_-]+)}'
+
+    def __init__(self, args):
+        """Instantiate"""
+        logger.info("extracting template variables")
+
+        # defaults
+        if not args.input:
+            args.input = "template.sh"
+
+        if not args.output:
+            args.output = "template_vars.tf"
+
+        super().__init__(args)
+
+    def write_file(self):
+        """Output vars to .tf file."""
+        self._find_non_existing_filename()
+
+        with open(self.args.output, "w", encoding='utf_8') as file_handle:
+
+            file_handle.write('locals {\n')
+            file_handle.write('  templates_vars = {\n')
+            for tf_var in self.tf_vars:
+                file_handle.write("".join([
+                    "    ",
+                    tf_var,
+                    " = ",
+                    "\"replace\"\n"]))
+            file_handle.write('  }\n}\n')
+
+    def extract(self):
+        """Extract vars from .tf file."""
+        self.find_vars_in_file(self.var_regex)
+        self.write_file()
 
         return EXIT_OKAY

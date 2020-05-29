@@ -16,7 +16,8 @@ Terraform module development tool.
 1. Extract variables from `main.tf` and generate a `variables.tf` file
 1. Find missing variables in `variables.tf` and `main.tf` based on each other
 1. Generate a module use stub from a `variables.tf` file
-1. Generate a .env file with variables from `main.tf`
+1. Generate a .env or `.tfvars` file with variables from `main.tf`
+1. Generate HCL with template variables corresponding to variables from a Terraform template
 1. Delete extra *scratchrelaxtv* files
 
 # install
@@ -51,14 +52,14 @@ Here are two example workflows using *scratchrelaxtv*.
 
 ## example: generate `variables.tf`
 
-By default, *scratchrelaxtv* looks for `main.tf` and will generate a `variables.tf` file. Variables will be in the same order in `variables.tf` as they were in `main.tf`. There are options to sort variables. You can `--force` to overwrite an existing `variables.tf` file. Otherwise, *scratchrelaxtv* will generate new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
+By default, *scratchrelaxtv* looks for `main.tf` and will generate a `variables.tf` file. (Use the `-i` to specify a different input file.) Variables will be in the same order in `variables.tf` as they were in `main.tf`. You can sort the variables using the `-a` (ascending) and `-d` (descending) options. You can also `--force` to overwrite an existing `variables.tf` file. Otherwise, *scratchrelaxtv* will generate new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
 
 Assume this `main.tf`:
 ```hcl
 resource "aws_s3_bucket" "this" {
-  count  = "${var.create_bucket ? 1 : 0}"
-  bucket = "${var.bucket}"
-  region = "${var.region}"
+  count  = var.create_bucket ? 1 : 0
+  bucket = var.bucket
+  region = var.region
 }
 ```
 
@@ -100,8 +101,8 @@ Assume you already have a `main.tf` and a `variables.tf`. In this example, the `
 `main.tf`:
 ```hcl
 resource "aws_s3_bucket" "this" {
-  bucket = "${var.bucket}"
-  region = "${var.region}"
+  bucket = var.bucket
+  region = var.region
 }
 ```
 
@@ -186,21 +187,81 @@ module "tests2" {
     aws = "aws"
   }
 
-  id     = "${local.id}"
-  bucket = "${local.bucket}"
-  region = "${local.region}"
+  id     = local.id
+  bucket = local.bucket
+  region = local.region
+}
+```
+
+## example: generate a `.tfvars` file
+
+By default, when generating a `.tfvars` file, *scratchrelaxtv* looks for `variables.tf`.
+
+Assume this `variables.tf`:
+```hcl
+resource "aws_s3_bucket" "this" {
+  bucket = var.bucket
+  region = var.region
+}
+```
+
+Run *scratchrelaxtv* with the generate `.tfvars` and sort-ascending options:
+```console
+$ relaxtv -ta
+2019-06-21 20:01:35,362 - INFO - generating .tfvars file
+2019-06-21 20:01:35,362 - INFO - input file: variables.tf
+2019-06-21 20:01:35,362 - INFO - output file: terraform.tfvars
+2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
+2019-06-21 20:01:35,362 - INFO - ordering output file ascending
+```
+
+The generated `terraform.tfvars` file:
+```
+bucket = "replace"
+region = "replace"
+```
+
+## example: generate a `.tf` file from Terraform template
+
+By default, when using template mode, *scratchrelaxtv* looks for `template.sh`. (Use the `-i` to specify a different input file.)
+
+Assume this `template.sh`:
+```bash
+#!/bin/bash
+
+build_os="${build_os}"
+build_type="${build_type}"
+```
+
+Run *scratchrelaxtv* with the `--template` and sort-ascending options:
+```console
+$ relaxtv -a --template
+2019-06-21 20:01:35,362 - INFO - extracting template variables
+2019-06-21 20:01:35,362 - INFO - input file: template.sh
+2019-06-21 20:01:35,362 - INFO - output file: template_vars.tf
+2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
+2019-06-21 20:01:35,362 - INFO - ordering output file ascending
+```
+
+The generated `template_vars.tf` file:
+```hcl
+locals {
+  templates_vars = {
+    build_os = "replace"
+    build_type = "replace"
+  }
 }
 ```
 
 ## example: generate a `.env` (dotenv) file
 
-By default, when generating a `.env` file, *scratchrelaxtv* looks for `variables.tf`.
+By default, when generating a `.env` file, *scratchrelaxtv* looks for `variables.tf`. (Use the `-i` to specify a different input file.)
 
 Assume this `variables.tf`:
 ```hcl
 resource "aws_s3_bucket" "this" {
-  bucket = "${var.bucket}"
-  region = "${var.region}"
+  bucket = var.bucket
+  region = var.region
 }
 ```
 
@@ -208,7 +269,7 @@ Run *scratchrelaxtv* with the generate `.env` and sort-ascending options:
 ```console
 $ relaxtv -ea
 2019-06-21 20:01:35,362 - INFO - generating .env file
-2019-06-21 20:01:35,362 - INFO - input file: main.tf
+2019-06-21 20:01:35,362 - INFO - input file: variables.tf
 2019-06-21 20:01:35,362 - INFO - output file: .env
 2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
 2019-06-21 20:01:35,362 - INFO - ordering output file ascending
@@ -248,9 +309,9 @@ $ relaxtv -r
 *scratchrelaxtv* includes help:
 
 ```console
-$ relaxtv --help
+$ relaxtv -h
 usage: scratchrelaxtv [-h] [-i INPUT] [-o OUTPUT] [-f] [-m] [-n MODNAME] [-r]
-                      [-c] [-e] [-a | -d]
+                      [-c] [-e] [-t] [--template] [-a | -d]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -265,6 +326,8 @@ optional arguments:
   -r, --remove          remove all modstub.tf, variables.#.tf files
   -c, --check           check that all vars are listed
   -e, --env             generate .env with Terraform vars
+  -t, --tfvars          generate .tfvars with Terraform vars
+  --template            generate .tf from Terraform template vars
   -a, --asc             sort output variables in ascending order
   -d, --desc            sort output variables in descending order
 ```

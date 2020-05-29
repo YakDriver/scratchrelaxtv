@@ -41,6 +41,8 @@ def parse_args(args):
                       help="generate .env with Terraform vars")
     task.add_argument("-t", "--tfvars", default=False, action="store_true",
                       help="generate .tfvars with Terraform vars")
+    task.add_argument("--template", default=False, action="store_true",
+                      help="generate .tf from Terraform template vars")
 
     sort_order = parser.add_mutually_exclusive_group()
     sort_order.add_argument("-a", "--asc", action="store_true",
@@ -65,6 +67,8 @@ def main():
         extractor = scratchrelaxtv.Checker(args)
     elif args.env or args.tfvars:
         extractor = scratchrelaxtv.EnvGenerator(args)
+    elif args.template:
+        extractor = scratchrelaxtv.TemplateExtractor(args)
     else:
         extractor = scratchrelaxtv.VarExtractor(args)
 
