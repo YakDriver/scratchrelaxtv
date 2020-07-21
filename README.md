@@ -1,10 +1,10 @@
-![scratch relax tv](https://github.com/YakDriver/scratchrelaxtv/raw/master/assets/srt.gif "Extract HCL Vars")
+![scratch relax tv](https://github.com/YakDriver/scratchrelaxtv/raw/main/assets/srt.gif "Extract HCL Vars")
 
 <p>
     <a href="./LICENSE" alt="License">
         <img src="https://img.shields.io/github/license/YakDriver/scratchrelaxtv.svg" /></a>
     <a href="http://travis-ci.org/YakDriver/scratchrelaxtv" alt="Build status">
-        <img src="https://travis-ci.org/YakDriver/scratchrelaxtv.svg?branch=master" /></a>
+        <img src="https://travis-ci.org/YakDriver/scratchrelaxtv.svg?branch=main" /></a>
     <a href="https://pypi.python.org/pypi/scratchrelaxtv" alt="Python versions">
         <img src="https://img.shields.io/pypi/pyversions/scratchrelaxtv.svg" /></a>
     <a href="https://pypi.python.org/pypi/scratchrelaxtv" alt="Version">
