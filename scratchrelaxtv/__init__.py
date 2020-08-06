@@ -20,7 +20,7 @@ import os
 import re
 
 
-__version__ = "0.6.7"
+__version__ = "0.6.8"
 EXIT_OKAY = 0
 EXIT_NOT_OKAY = 1
 
