@@ -1,0 +1,23 @@
+version: 2
+updates:
+- package-ecosystem: pip
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+  ignore:
+  - dependency-name: pylint
+    versions:
+    - 2.7.4
+    - 2.8.1
+  - dependency-name: virtualenv
+    versions:
+    - 20.4.3
+  - dependency-name: flake8
+    versions:
+    - 3.9.0
+  - dependency-name: pip
+    versions:
+    - "21.0"
+    - 21.0.1
