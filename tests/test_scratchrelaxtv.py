@@ -11,7 +11,6 @@ from pathlib import Path
 
 import pytest
 
-import scratchrelaxtv
 from scratchrelaxtv import (
     EXIT_OKAY,
     Checker,
@@ -19,6 +18,7 @@ from scratchrelaxtv import (
     StubMaker,
     TemplateExtractor,
     VarExtractor,
+    __version__,
     cli,
     remove_files,
 )
@@ -229,7 +229,7 @@ def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     with pytest.raises(SystemExit) as exc:
         cli.main(["--version"])
     assert exc.value.code == 0
-    assert scratchrelaxtv.__version__ in capsys.readouterr().out
+    assert __version__ in capsys.readouterr().out
 
 
 def test_missing_input_exits_nonzero(capsys: pytest.CaptureFixture[str]) -> None:
