@@ -3,8 +3,8 @@
 <p>
     <a href="./LICENSE" alt="License">
         <img src="https://img.shields.io/github/license/YakDriver/scratchrelaxtv.svg" /></a>
-    <a href="http://travis-ci.org/YakDriver/scratchrelaxtv" alt="Build status">
-        <img src="https://travis-ci.org/YakDriver/scratchrelaxtv.svg?branch=main" /></a>
+    <a href="https://github.com/YakDriver/scratchrelaxtv/actions/workflows/ci.yml" alt="Build status">
+        <img src="https://github.com/YakDriver/scratchrelaxtv/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
     <a href="https://pypi.python.org/pypi/scratchrelaxtv" alt="Python versions">
         <img src="https://img.shields.io/pypi/pyversions/scratchrelaxtv.svg" /></a>
     <a href="https://pypi.python.org/pypi/scratchrelaxtv" alt="Version">
@@ -26,9 +26,11 @@ Terraform module development tool.
 pip install scratchrelaxtv
 ```
 
+*scratchrelaxtv* requires Python 3.11 or newer.
+
 # tips
 
-Once installed, you can run *scratchrelaxtv* by typing either `relaxtv` or `scratchrelaxtv`.
+Once installed, you can run *scratchrelaxtv* by typing either `relaxtv` or `scratchrelaxtv`. You can also run it as `python -m scratchrelaxtv`.
 
 Find out more about Terraform workflows and using *scratchrelaxtv* [here](https://medium.com/@dirk.avery/terraform-secure-simple-sweet-development-workflow-d7188d33d9cf).
 
@@ -311,9 +313,9 @@ $ relaxtv -r
 ```console
 $ relaxtv -h
 usage: scratchrelaxtv [-h] [-i INPUT] [-o OUTPUT] [-f] [-m] [-n MODNAME] [-r]
-                      [-c] [-e] [-t] [--template] [-a | -d]
+                      [-c] [-e] [-t] [--template] [-a | -d] [--version]
 
-optional arguments:
+options:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
                         file to extract vars from
@@ -330,4 +332,5 @@ optional arguments:
   --template            generate .tf from Terraform template vars
   -a, --asc             sort output variables in ascending order
   -d, --desc            sort output variables in descending order
+  --version             show program's version number and exit
 ```

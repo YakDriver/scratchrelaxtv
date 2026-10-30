@@ -1,0 +1,112 @@
+[build-system]
+requires = ["hatchling==1.33.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "scratchrelaxtv"
+dynamic = ["version"]
+description = "Terraform module development tool to extract variables and generate variables.tf files"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "YakDriver", email = "projects@plus3it.com" }]
+requires-python = ">=3.11"
+dependencies = []
+keywords = ["terraform", "hcl", "variables", "module", "devops"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS :: MacOS X",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Utilities",
+    "Typing :: Typed",
+]
+
+[project.optional-dependencies]
+dev = [
+    "bump-my-version==1.6.7",
+    "mypy==2.4.1",
+    "pytest==9.2.0",
+    "pytest-cov==7.1.0",
+    "ruff==0.17.3",
+]
+
+[project.scripts]
+scratchrelaxtv = "scratchrelaxtv.cli:main"
+relaxtv = "scratchrelaxtv.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/YakDriver/scratchrelaxtv"
+Issues = "https://github.com/YakDriver/scratchrelaxtv/issues"
+Changelog = "https://github.com/YakDriver/scratchrelaxtv/blob/main/CHANGELOG.md"
+
+[tool.hatch.version]
+path = "scratchrelaxtv/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = ["scratchrelaxtv", "tests", "README.md", "CHANGELOG.md", "LICENSE"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["scratchrelaxtv"]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+
+[tool.coverage.run]
+source = ["scratchrelaxtv"]
+branch = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "B",        # flake8-bugbear
+    "UP",       # pyupgrade
+    "SIM",      # flake8-simplify
+    "C4",       # flake8-comprehensions
+    "S",        # flake8-bandit (security)
+    "D",        # pydocstyle
+    "PL",       # pylint subset
+    "RUF",
+]
+ignore = [
+    "D203", "D213",  # conflicting pydocstyle rules; use D211/D212
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "D", "PLR2004"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = false
+
+[tool.bumpversion]
+current_version = "0.7.0"
+commit = false
+tag = false
+
+[[tool.bumpversion.files]]
+filename = "scratchrelaxtv/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
