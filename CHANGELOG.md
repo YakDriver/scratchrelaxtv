@@ -8,7 +8,7 @@
 * Releases are now tag-triggered and publish to PyPI with Trusted Publishing (no stored token).
 * Removing the pinned `pip`, `virtualenv`, `pytest`, `pylint`, and `flake8` dev requirements clears all 27 open Dependabot alerts.
 * Added type hints, a `py.typed` marker, and `python -m scratchrelaxtv`.
-* The CLI now accepts `--version` and prints an error message with a non-zero exit code instead of a traceback when a file operation fails.
+* The CLI now accepts `--version` and prints an error message with a non-zero exit code instead of a traceback when a file operation fails, including when `-r` cannot delete a file.
 * No change to generated output: `variables.tf`, `modstub.tf`, `.env`, `.tfvars`, and template files are byte-for-byte identical to 0.6.17.
 
 ## 0.6.0 - 2020.05.29

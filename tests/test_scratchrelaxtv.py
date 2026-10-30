@@ -224,6 +224,22 @@ def test_remove_cli(tmp_path: Path) -> None:
     assert os.path.isfile(os.path.join(work, "keep.tf"))
 
 
+def test_remove_failure_exits_nonzero(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """A file that cannot be removed prints an error instead of a traceback."""
+    (tmp_path / "modstub.tf").write_text("x", encoding="utf-8")
+
+    def deny(path: str) -> None:
+        raise PermissionError(13, "Permission denied", path)
+
+    monkeypatch.setattr(os, "remove", deny)
+    with change_dir(str(tmp_path)):
+        assert cli.main(["-r"]) == 1
+    assert "scratchrelaxtv:" in capsys.readouterr().err
+    assert (tmp_path / "modstub.tf").exists()
+
+
 def test_version(capsys: pytest.CaptureFixture[str]) -> None:
     """--version prints the package version and exits 0."""
     with pytest.raises(SystemExit) as exc:

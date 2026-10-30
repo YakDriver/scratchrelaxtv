@@ -103,10 +103,8 @@ def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
     return parser.parse_args(args)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """Entry point for scratchrelaxtv CLI."""
-    args = parse_args(sys.argv[1:] if argv is None else argv)
-
+def _run(args: argparse.Namespace) -> int:
+    """Run the task selected by args and return its exit code."""
     if args.remove:
         scratchrelaxtv.remove_files()
         return scratchrelaxtv.EXIT_OKAY
@@ -123,8 +121,15 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         extractor = scratchrelaxtv.VarExtractor(args)
 
+    return extractor.extract()
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    """Entry point for scratchrelaxtv CLI."""
+    args = parse_args(sys.argv[1:] if argv is None else argv)
+
     try:
-        return extractor.extract()
+        return _run(args)
     except OSError as exc:
         print(f"scratchrelaxtv: {exc}", file=sys.stderr)
         return scratchrelaxtv.EXIT_NOT_OKAY
