@@ -217,11 +217,33 @@ def expressions(text: str) -> str:
     return _scan(text)[2]
 
 
+# Directories -r never descends into: VCS data and downloaded Terraform modules.
+_SKIP_DIRS = frozenset({".git", ".terraform", ".terragrunt-cache"})
+
+
+def uses(text: str) -> str:
+    """Return :func:`expressions`, minus each variable's references to itself.
+
+    A ``var.x`` inside ``variable "x" { validation { ... } }`` checks the value but
+    doesn't use it, so it shouldn't hide an unused ``x``. References to other
+    variables in a validation block still count.
+    """
+    _, top, expr = _scan(text)
+    for header in re.finditer(r'\bvariable\s+"([^"]+)"\s*\{', top):
+        close = top.find("}", header.end())
+        end = len(top) if close < 0 else close
+        own = re.compile(rf"\bvar\.{re.escape(header[1])}(?![\w-])")
+        body = own.sub(lambda m: " " * len(m[0]), expr[header.end() : end])
+        expr = expr[: header.end()] + body + expr[end:]
+    return expr
+
+
 def remove_files() -> None:
     """Remove files from the os that look like scratchrelaxtv files."""
     logger.info("attempting removal of files")
     pattern = r"^(variables\.\d+|modstub(\.\d+|))\.tf$"
-    for root, _, files in os.walk(os.getcwd()):
+    for root, dirs, files in os.walk(os.getcwd()):
+        dirs[:] = [d for d in dirs if d not in _SKIP_DIRS]
         for file in filter(lambda x: re.match(pattern, x), files):
             os.remove(os.path.join(root, file))
             logger.info("removed file: %s", os.path.join(root, file))
@@ -461,7 +483,8 @@ class Checker(BassExtractor):
 
     def find_missing(self) -> dict[str, list[str]]:
         """Return undeclared (used, not declared) and unused (declared, not used) vars."""
-        uses = self.find_vars(self.read(self.input_files), self.var_regex)
+        text = "\n".join(uses(self.get_file_contents(name)) for name in self.input_files)
+        used = self.find_vars(text, self.var_regex)
 
         declaration_files = list(self.input_files)
         if os.path.isfile(self.args.output) and self.args.output not in declaration_files:
@@ -469,8 +492,8 @@ class Checker(BassExtractor):
         declared = self.find_vars(self.read(declaration_files, top=True), self.variable_regex)
 
         return {
-            "undeclared": [v for v in uses if v not in declared],
-            "unused": [v for v in declared if v not in uses],
+            "undeclared": [v for v in used if v not in declared],
+            "unused": [v for v in declared if v not in used],
         }
 
     def extract(self) -> int:

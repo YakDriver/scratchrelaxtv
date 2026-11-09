@@ -1,6 +1,6 @@
 # CHANGE LOG
 
-## 0.7.0 - 2026.10.29
+## 0.7.0 - 2026.11.09
 
 * **Breaking:** Requires Python 3.11 or newer. Python 2 and Python 3.5-3.10 are no longer supported.
 * Packaging moved to `pyproject.toml` (hatchling), replacing `setup.py`, `setup.cfg`, `requirements/`, `.bumpversion.cfg`, and `MANIFEST.in`.
@@ -17,6 +17,8 @@
 * Add pre-commit hooks: `relaxtv-check` (`relaxtv -c`) and `relaxtv-fix` (`relaxtv -cf`). `-c` accepts module directories or `.tf` file paths and checks each module once.
 * References are read only from HCL expressions, including `${...}` and `%{...}` in strings and heredocs. A `var.x` in a comment or in literal text such as `description = "Replaces var.x"` no longer counts, and declarations count only as top-level `variable` blocks.
 * Output is quiet by default: only warnings are printed, to stderr. `-v` logs each step. Logging is configured by the CLI, not when the library is imported, and `logging.conf` is removed.
+* A variable referenced only in its own `validation` block is reported as unused. References to other variables in a validation block still count.
+* `-r` no longer descends into `.git`, `.terraform`, or `.terragrunt-cache`, so it can't delete files in downloaded modules.
 * README shows `pipx install` and `uvx`.
 * README examples now match actual output.
 
