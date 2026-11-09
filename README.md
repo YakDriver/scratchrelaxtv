@@ -79,20 +79,17 @@ The generated `variables.tf`:
 ```hcl
 variable "create_bucket" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "bucket" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "region" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 ```
 
@@ -140,8 +137,7 @@ variable "bucket" {
 
 variable "region" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 ```
 
@@ -185,10 +181,6 @@ The generated `modstub.tf`:
 module "tests2" {
   source = "../tests2"
 
-  providers = {
-    aws = "aws"
-  }
-
   id     = local.id
   bucket = local.bucket
   region = local.region
@@ -197,9 +189,9 @@ module "tests2" {
 
 ## example: generate a `.tfvars` file
 
-By default, when generating a `.tfvars` file, *scratchrelaxtv* looks for `variables.tf`.
+By default, when generating a `.tfvars` file, *scratchrelaxtv* looks for `main.tf`.
 
-Assume this `variables.tf`:
+Assume this `main.tf`:
 ```hcl
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket
@@ -211,7 +203,7 @@ Run *scratchrelaxtv* with the generate `.tfvars` and sort-ascending options:
 ```console
 $ relaxtv -ta
 2019-06-21 20:01:35,362 - INFO - generating .tfvars file
-2019-06-21 20:01:35,362 - INFO - input file: variables.tf
+2019-06-21 20:01:35,362 - INFO - input file: main.tf
 2019-06-21 20:01:35,362 - INFO - output file: terraform.tfvars
 2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
 2019-06-21 20:01:35,362 - INFO - ordering output file ascending
@@ -249,7 +241,7 @@ The generated `template_vars.tf` file:
 ```hcl
 locals {
   templates_vars = {
-    build_os = "replace"
+    build_os   = "replace"
     build_type = "replace"
   }
 }
@@ -257,9 +249,9 @@ locals {
 
 ## example: generate a `.env` (dotenv) file
 
-By default, when generating a `.env` file, *scratchrelaxtv* looks for `variables.tf`. (Use the `-i` to specify a different input file.)
+By default, when generating a `.env` file, *scratchrelaxtv* looks for `main.tf`. (Use the `-i` to specify a different input file.)
 
-Assume this `variables.tf`:
+Assume this `main.tf`:
 ```hcl
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket
@@ -271,7 +263,7 @@ Run *scratchrelaxtv* with the generate `.env` and sort-ascending options:
 ```console
 $ relaxtv -ea
 2019-06-21 20:01:35,362 - INFO - generating .env file
-2019-06-21 20:01:35,362 - INFO - input file: variables.tf
+2019-06-21 20:01:35,362 - INFO - input file: main.tf
 2019-06-21 20:01:35,362 - INFO - output file: .env
 2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
 2019-06-21 20:01:35,362 - INFO - ordering output file ascending
@@ -280,8 +272,8 @@ $ relaxtv -ea
 The generated `.env`:
 ```bash
 unset "${!TF_VAR_@}"
-TF_VAR_bucket=replace
-TF_VAR_region=replace
+export TF_VAR_bucket=replace
+export TF_VAR_region=replace
 ```
 
 ## example: remove files

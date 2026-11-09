@@ -21,6 +21,7 @@ from scratchrelaxtv import (
     __version__,
     cli,
     remove_files,
+    variable_block,
 )
 
 
@@ -203,6 +204,21 @@ def test_template() -> None:
             second_list = file_handle.read().splitlines()
         assert first_list == second_list
         os.remove(filename)
+
+
+def test_stub_without_variables(tmp_path: Path) -> None:
+    """A module with no variables gets a stub with only ``source``."""
+    (tmp_path / "variables.tf").write_text("", encoding="utf-8")
+    with change_dir(str(tmp_path)):
+        assert cli.main(["-m", "-n", "empty"]) == EXIT_OKAY
+    assert (tmp_path / "modstub.tf").read_text(encoding="utf-8") == (
+        'module "empty" {\n  source = "../empty"\n}\n'
+    )
+
+
+def test_variable_block_is_required_any() -> None:
+    """Generated declarations have ``type = any`` and no default (#250)."""
+    assert variable_block("x") == 'variable "x" {\n  description = ""\n  type        = any\n}\n'
 
 
 def test_remove_cli(tmp_path: Path) -> None:
