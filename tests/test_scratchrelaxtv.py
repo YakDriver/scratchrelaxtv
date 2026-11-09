@@ -41,7 +41,8 @@ def test_var_defaults() -> None:
     with change_dir("tests"):
         args = cli.parse_args([])
         extractor = VarExtractor(args)
-        assert extractor.args.input == "main.tf"
+        assert extractor.args.input is None
+        assert "main.tf" in extractor.input_files
         assert extractor.args.output == "variables.tf"
         assert not extractor.args.force
 
@@ -51,7 +52,8 @@ def test_stub_defaults() -> None:
     with change_dir("tests"):
         args = cli.parse_args([])
         maker = StubMaker(args)
-        assert maker.args.input == "variables.tf"
+        assert maker.args.input is None
+        assert "variables.tf" in maker.input_files
         assert maker.args.output == "modstub.tf"
         assert not maker.args.force
 
@@ -77,7 +79,7 @@ def test_same_content_vars() -> None:
         if os.path.isfile(filename):
             os.remove(filename)
 
-        args = cli.parse_args(["-fa", "-o", filename])
+        args = cli.parse_args(["-fa", "-i", "main.tf", "-o", filename])
 
         extractor = VarExtractor(args)
 
@@ -97,7 +99,7 @@ def test_same_content_maker() -> None:
         if os.path.isfile(filename):
             os.remove(filename)
 
-        args = cli.parse_args(["-mfa", "-o", filename])
+        args = cli.parse_args(["-mfa", "-i", "variables.tf", "-o", filename])
 
         maker = StubMaker(args)
 
@@ -140,10 +142,7 @@ def test_check() -> None:
         checker = Checker(args)
         missing = checker.find_missing()
 
-        assert len(missing["main"]) == 1
-        assert missing["main"][0] == "create"
-        assert len(missing["var"]) == 1
-        assert missing["var"][0] == "extra_var"
+        assert missing == {"undeclared": ["create"], "unused": ["extra_var"]}
 
 
 def test_gen_env() -> None:
@@ -153,7 +152,7 @@ def test_gen_env() -> None:
         if os.path.isfile(filename):
             os.remove(filename)
 
-        args = cli.parse_args(["-fea", "-o", filename])
+        args = cli.parse_args(["-fea", "-i", "main.tf", "-o", filename])
 
         extractor = EnvGenerator(args)
 
@@ -173,7 +172,7 @@ def test_gen_tfvars() -> None:
         if os.path.isfile(filename):
             os.remove(filename)
 
-        args = cli.parse_args(["-fta", "-o", filename])
+        args = cli.parse_args(["-fta", "-i", "main.tf", "-o", filename])
 
         extractor = EnvGenerator(args)
 

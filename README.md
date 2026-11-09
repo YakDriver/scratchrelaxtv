@@ -13,24 +13,49 @@
 
 Terraform module development tool.
 
-1. Extract variables from `main.tf` and generate a `variables.tf` file
-1. Find missing variables in `variables.tf` and `main.tf` based on each other
-1. Generate a module use stub from a `variables.tf` file
-1. Generate a .env or `.tfvars` file with variables from `main.tf`
+1. Extract the variables a module uses and generate a `variables.tf` file
+1. Check that a module declares every variable it uses and uses every variable it declares, from the command line or as a [pre-commit](https://pre-commit.com) hook
+1. Generate a module use stub from a module's variable declarations
+1. Generate a .env or `.tfvars` file with the variables a module uses
 1. Generate HCL with template variables corresponding to variables from a Terraform template
 1. Delete extra *scratchrelaxtv* files
+
+*scratchrelaxtv* reads every `*.tf` file in the current directory, so modules split across `main.tf`, `locals.tf`, and other files are handled as a whole. Use `-i` to read a single file instead. Comments are ignored, so a commented-out `var.x` doesn't count as a use.
 
 # install
 
 ```
-pip install scratchrelaxtv
+pipx install scratchrelaxtv
 ```
 
-*scratchrelaxtv* requires Python 3.11 or newer.
+Or run it without installing, using [uv](https://docs.astral.sh/uv/):
+
+```
+uvx scratchrelaxtv --help
+```
+
+`pip install scratchrelaxtv` also works. *scratchrelaxtv* requires Python 3.11 or newer.
+
+# pre-commit
+
+Add *scratchrelaxtv* to `.pre-commit-config.yaml` to check every module that has changed `.tf` files:
+
+```yaml
+repos:
+  - repo: https://github.com/YakDriver/scratchrelaxtv
+    rev: 0.7.0
+    hooks:
+      - id: relaxtv-check   # report undeclared and unused variables
+      # - id: relaxtv-fix   # also add declarations for undeclared variables
+```
+
+Both hooks fail when a module has an undeclared or unused variable. `relaxtv-fix` adds the missing declarations to the module's `variables.tf`, so the next run passes unless unused variables remain. Remove those yourself.
 
 # tips
 
 Once installed, you can run *scratchrelaxtv* by typing either `relaxtv` or `scratchrelaxtv`. You can also run it as `python -m scratchrelaxtv`.
+
+By default, *scratchrelaxtv* only prints warnings. Add `-v` to log each step.
 
 Find out more about Terraform workflows and using *scratchrelaxtv* [here](https://medium.com/@dirk.avery/terraform-secure-simple-sweet-development-workflow-d7188d33d9cf).
 
@@ -45,8 +70,8 @@ Here are two example workflows using *scratchrelaxtv*.
 1. Run `terraform fmt` to prettify everything
 
 **Cleanup module**:
-1. Run *scratchrelaxtv* in folder with `main.tf` and `variables.tf` to find missing variables
-1. Using `-cf` option, automatically add missing vars to `variables.tf`
+1. Run `relaxtv -c` in the module's directory to find undeclared and unused variables
+1. Run `relaxtv -cf` to automatically add declarations for undeclared variables to `variables.tf`
 1. Fill in descriptions, defaults, etc. in `variables.tf` for newly added vars
 1. Run `terraform fmt` to prettify everything
 
@@ -54,7 +79,7 @@ Here are two example workflows using *scratchrelaxtv*.
 
 ## example: generate `variables.tf`
 
-By default, *scratchrelaxtv* looks for `main.tf` and will generate a `variables.tf` file. (Use the `-i` to specify a different input file.) Variables will be in the same order in `variables.tf` as they were in `main.tf`. You can sort the variables using the `-a` (ascending) and `-d` (descending) options. You can also `--force` to overwrite an existing `variables.tf` file. Otherwise, *scratchrelaxtv* will generate new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
+By default, *scratchrelaxtv* reads every `*.tf` file in the current directory and generates a `variables.tf` file. (Use `-i` to read a single file.) Variables are in order of first use, reading files in alphabetical order. You can sort the variables using the `-a` (ascending) and `-d` (descending) options. You can also `--force` to overwrite an existing `variables.tf` file. Otherwise, *scratchrelaxtv* will generate new `variables.tf` files with each run: `variables.1.tf`, `variables.2.tf` and so on.
 
 Assume this `main.tf`:
 ```hcl
@@ -68,11 +93,6 @@ resource "aws_s3_bucket" "this" {
 Run *scratchrelaxtv*:
 ```console
 $ relaxtv
-2019-04-26 08:02:54,011 - INFO - generating variables file
-2019-04-26 08:02:54,011 - INFO - input file: main.tf
-2019-04-26 08:02:54,011 - INFO - output file: variables.tf
-2019-04-26 08:02:54,011 - INFO - not forcing overwrite of output file
-2019-04-26 08:02:54,011 - INFO - not ordering output file
 ```
 
 The generated `variables.tf`:
@@ -95,7 +115,7 @@ variable "region" {
 
 ## example: find and fix missing variables
 
-Assume you already have a `main.tf` and a `variables.tf`. In this example, the `variables.tf` is missing the `region` variable.
+Assume you already have a `main.tf` and a `variables.tf`. In this example, the `variables.tf` is missing the `region` variable. `relaxtv -c` reports undeclared and unused variables and exits with status 1 if it finds any. Add `-f` to also add declarations for the undeclared ones.
 
 `main.tf`:
 ```hcl
@@ -118,13 +138,8 @@ Run *scratchrelaxtv* to automatically add any missing variables:
 
 ```console
 $ relaxtv -cf
-2019-04-26 08:21:27,289 - INFO - checking for missing variables
-2019-04-26 08:21:27,289 - INFO - input file: main.tf
-2019-04-26 08:21:27,289 - INFO - output file: variables.tf
-2019-04-26 08:21:27,289 - INFO - forcing overwrite of output file
-2019-04-26 08:21:27,289 - INFO - not ordering output file
-2019-04-26 08:21:27,290 - WARNING - input file main.tf is missing variables:
-region
+scratchrelaxtv: .: undeclared variables: region
+scratchrelaxtv: .: added declarations to variables.tf
 ```
 
 Now, the `variables.tf` looks like this:
@@ -143,7 +158,7 @@ variable "region" {
 
 ## example: generate a stub for using the module
 
-By default, when generating a stub, *scratchrelaxtv* looks for `variables.tf`.
+By default, when generating a stub, *scratchrelaxtv* reads the variable declarations in every `*.tf` file in the current directory.
 
 Assume this `variables.tf`:
 ```hcl
@@ -169,11 +184,6 @@ variable "region" {
 Run *scratchrelaxtv* with the module stub option:
 ```console
 $ relaxtv -m
-2019-04-26 08:09:27,147 - INFO - generating module usage stub
-2019-04-26 08:09:27,147 - INFO - input file: variables.tf
-2019-04-26 08:09:27,147 - INFO - output file: modstub.tf
-2019-04-26 08:09:27,147 - INFO - not forcing overwrite of output file
-2019-04-26 08:09:27,147 - INFO - not ordering output file
 ```
 
 The generated `modstub.tf`:
@@ -189,7 +199,7 @@ module "tests2" {
 
 ## example: generate a `.tfvars` file
 
-By default, when generating a `.tfvars` file, *scratchrelaxtv* looks for `main.tf`.
+By default, when generating a `.tfvars` file, *scratchrelaxtv* reads every `*.tf` file in the current directory.
 
 Assume this `main.tf`:
 ```hcl
@@ -202,11 +212,6 @@ resource "aws_s3_bucket" "this" {
 Run *scratchrelaxtv* with the generate `.tfvars` and sort-ascending options:
 ```console
 $ relaxtv -ta
-2019-06-21 20:01:35,362 - INFO - generating .tfvars file
-2019-06-21 20:01:35,362 - INFO - input file: main.tf
-2019-06-21 20:01:35,362 - INFO - output file: terraform.tfvars
-2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
-2019-06-21 20:01:35,362 - INFO - ordering output file ascending
 ```
 
 The generated `terraform.tfvars` file:
@@ -230,11 +235,6 @@ build_type="${build_type}"
 Run *scratchrelaxtv* with the `--template` and sort-ascending options:
 ```console
 $ relaxtv -a --template
-2019-06-21 20:01:35,362 - INFO - extracting template variables
-2019-06-21 20:01:35,362 - INFO - input file: template.sh
-2019-06-21 20:01:35,362 - INFO - output file: template_vars.tf
-2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
-2019-06-21 20:01:35,362 - INFO - ordering output file ascending
 ```
 
 The generated `template_vars.tf` file:
@@ -249,7 +249,7 @@ locals {
 
 ## example: generate a `.env` (dotenv) file
 
-By default, when generating a `.env` file, *scratchrelaxtv* looks for `main.tf`. (Use the `-i` to specify a different input file.)
+By default, when generating a `.env` file, *scratchrelaxtv* reads every `*.tf` file in the current directory. (Use `-i` to read a single file.)
 
 Assume this `main.tf`:
 ```hcl
@@ -262,11 +262,6 @@ resource "aws_s3_bucket" "this" {
 Run *scratchrelaxtv* with the generate `.env` and sort-ascending options:
 ```console
 $ relaxtv -ea
-2019-06-21 20:01:35,362 - INFO - generating .env file
-2019-06-21 20:01:35,362 - INFO - input file: main.tf
-2019-06-21 20:01:35,362 - INFO - output file: .env
-2019-06-21 20:01:35,362 - INFO - not forcing overwrite of output file
-2019-06-21 20:01:35,362 - INFO - ordering output file ascending
 ```
 
 The generated `.env`:
@@ -305,24 +300,34 @@ $ relaxtv -r
 ```console
 $ relaxtv -h
 usage: scratchrelaxtv [-h] [-i INPUT] [-o OUTPUT] [-f] [-m] [-n MODNAME] [-r]
-                      [-c] [-e] [-t] [--template] [-a | -d] [--version]
+                      [-c] [-e] [-t] [--template] [-a | -d] [-v] [--version]
+                      [PATH ...]
+
+positional arguments:
+  PATH                  with -c: module directories or .tf files to check; a
+                        file means its directory (default: the current
+                        directory)
 
 options:
   -h, --help            show this help message and exit
   -i INPUT, --input INPUT
-                        file to extract vars from
+                        file to read (default: all *.tf files in the current
+                        directory; template.sh with --template)
   -o OUTPUT, --output OUTPUT
-                        file to write extracted vars to
-  -f, --force           overwrite existing out file
+                        file to write to
+  -f, --force           overwrite existing output file (with -c: add missing
+                        declarations)
   -m, --modstub         generate module usage stub
   -n MODNAME, --modname MODNAME
                         name to use in module stub
   -r, --remove          remove all modstub.tf, variables.#.tf files
-  -c, --check           check that all vars are listed
+  -c, --check           report undeclared and unused variables and exit 1 if
+                        any; with -f, also add missing declarations
   -e, --env             generate .env with Terraform vars
   -t, --tfvars          generate .tfvars with Terraform vars
   --template            generate .tf from Terraform template vars
   -a, --asc             sort output variables in ascending order
   -d, --desc            sort output variables in descending order
+  -v, --verbose         log each step, not only warnings
   --version             show program's version number and exit
 ```
