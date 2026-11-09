@@ -1,66 +1,54 @@
 variable "acl" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "bucket" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "create_2" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "create_keystore_bucket" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "now_a_var" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "org_ids" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "prefix" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "problem_var" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "region" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "tags" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
 
 variable "versioning" {
   description = ""
-  type        = string
-  default     = ""
+  type        = any
 }
-

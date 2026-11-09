@@ -35,6 +35,18 @@ def remove_prefix(text: str, prefix: str) -> str:
     return text[text.startswith(prefix) and len(prefix) :]
 
 
+def aligned(pairs: list[tuple[str, str]], indent: str = "") -> str:
+    """Return ``name = value`` lines with ``=`` aligned the way ``terraform fmt`` does."""
+    width = max((len(name) for name, _ in pairs), default=0)
+    return "".join(f"{indent}{name.ljust(width)} = {value}\n" for name, value in pairs)
+
+
+def variable_block(name: str) -> str:
+    """Return a variable declaration with no default, so the input stays required."""
+    body = aligned([("description", '""'), ("type", "any")], indent="  ")
+    return f'variable "{name}" {{\n{body}}}\n'
+
+
 def remove_files() -> None:
     """Remove files from the os that look like scratchrelaxtv files."""
     logger.info("attempting removal of files")
@@ -136,14 +148,9 @@ class VarExtractor(BassExtractor):
         """Output vars to .tf file."""
         self._find_non_existing_filename()
         with open(self.args.output, "w", encoding="utf-8") as file_handle:
-            for tf_var in self.tf_vars:
-                file_handle.write('variable "')
-                file_handle.write(remove_prefix(tf_var, "var."))
-                file_handle.write('" {\n')
-                file_handle.write('  description = ""\n')
-                file_handle.write("  type        = string\n")
-                file_handle.write('  default     = ""\n')
-                file_handle.write("}\n\n")
+            file_handle.write(
+                "\n".join(variable_block(remove_prefix(v, "var.")) for v in self.tf_vars)
+            )
 
     def extract(self) -> int:
         """Extract vars from .tf file."""
@@ -175,17 +182,15 @@ class StubMaker(BassExtractor):
     def write_file(self) -> None:
         """Output vars to .tf file."""
         self._find_non_existing_filename()
+        # No providers block: a child module inherits the parent's default
+        # provider configurations, and hardcoding one assumed AWS.
+        modname = self.args.modname
+        args = aligned([(v, f"local.{v}") for v in self.tf_vars], indent="  ")
         with open(self.args.output, "w", encoding="utf-8") as file_handle:
-            file_handle.write("module ")
-            file_handle.write("".join(['"', self.args.modname, '"']))
-            file_handle.write(" {\n")
-            file_handle.write("  source = ")
-            file_handle.write("".join(['"', "../", self.args.modname, '"']))
-            file_handle.write("\n\n")
-            file_handle.write('  providers = {\n    aws = "aws"\n  }\n\n')
-            for tf_var in self.tf_vars:
-                file_handle.write("".join(["  ", tf_var, ' = "${local.', tf_var, '}"\n']))
-            file_handle.write("}\n\n")
+            file_handle.write(f'module "{modname}" {{\n  source = "../{modname}"\n')
+            if args:
+                file_handle.write(f"\n{args}")
+            file_handle.write("}\n")
 
     def extract(self) -> int:
         """Extract vars from .tf file."""
@@ -227,8 +232,7 @@ class EnvGenerator(BassExtractor):
     def _write_tfvars(self) -> None:
         """Output vars to .tfvars file."""
         with open(self.args.output, "w", encoding="utf-8") as file_handle:
-            for tf_var in self.tf_vars:
-                file_handle.write("".join([tf_var, ' = "replace"\n']))
+            file_handle.write(aligned([(v, '"replace"') for v in self.tf_vars]))
 
     def write_file(self) -> None:
         """Output vars to file."""
@@ -266,14 +270,7 @@ class Checker(BassExtractor):
         """Output vars to .tf file."""
         with open(self.args.output, "a+", encoding="utf-8") as file_handle:
             for tf_var in self.tf_vars:
-                file_handle.write("\n")
-                file_handle.write('variable "')
-                file_handle.write(tf_var)
-                file_handle.write('" {\n')
-                file_handle.write('  description = ""\n')
-                file_handle.write("  type        = string\n")
-                file_handle.write('  default     = ""\n')
-                file_handle.write("}\n")
+                file_handle.write(f"\n{variable_block(tf_var)}")
 
     def find_missing(self) -> dict[str, list[str]]:
         """Find missing vars in .tf files."""
@@ -334,8 +331,7 @@ class TemplateExtractor(BassExtractor):
         with open(self.args.output, "w", encoding="utf-8") as file_handle:
             file_handle.write("locals {\n")
             file_handle.write("  templates_vars = {\n")
-            for tf_var in self.tf_vars:
-                file_handle.write("".join(["    ", tf_var, " = ", '"replace"\n']))
+            file_handle.write(aligned([(v, '"replace"') for v in self.tf_vars], indent="    "))
             file_handle.write("  }\n}\n")
 
     def extract(self) -> int:

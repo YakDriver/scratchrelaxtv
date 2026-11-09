@@ -9,7 +9,10 @@
 * Removing the pinned `pip`, `virtualenv`, `pytest`, `pylint`, and `flake8` dev requirements clears all 27 open Dependabot alerts.
 * Added type hints, a `py.typed` marker, and `python -m scratchrelaxtv`.
 * The CLI now accepts `--version` and prints an error message with a non-zero exit code instead of a traceback when a file operation fails, including when `-r` cannot delete a file.
-* No change to generated output: `variables.tf`, `modstub.tf`, `.env`, `.tfvars`, and template files are byte-for-byte identical to 0.6.17.
+* **Breaking:** Generated variable declarations now use `type = any` and no `default`, so new variables are required until you choose a type and default. Previously every variable got `type = string` and `default = ""`, which was wrong for non-string inputs and made required inputs silently optional ([#250](https://github.com/YakDriver/scratchrelaxtv/issues/250)). This applies to `variables.tf` generation and to `-cf`.
+* **Breaking:** The module stub (`-m`) uses HCL2 references (`bucket = local.bucket` instead of `bucket = "${local.bucket}"`) and no longer adds `providers = { aws = "aws" }`. Terraform warns that quoted references are deprecated and will be removed, and the block assumed the AWS provider ([#87](https://github.com/YakDriver/scratchrelaxtv/issues/87)).
+* Generated `.tf` and `.tfvars` files are now aligned the way `terraform fmt` formats them, so `terraform fmt` makes no further changes.
+* README examples now match actual output. The `-t` and `-e` examples incorrectly said they read `variables.tf`; they read `var.` references from `main.tf`.
 
 ## 0.6.0 - 2020.05.29
 
