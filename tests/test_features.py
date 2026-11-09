@@ -276,3 +276,46 @@ def test_interpolation_and_directive_are_references(tmp_path: Path) -> None:
     text = (tmp_path / "variables.tf").read_text(encoding="utf-8")
     assert 'variable "a"' in text
     assert 'variable "b"' in text
+
+
+# Release fixes
+
+
+def test_self_validation_is_not_a_use(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    write(
+        tmp_path,
+        variables_tf='variable "z" {\n  type = string\n\n  validation {\n'
+        '    condition     = length(var.z) > 0\n    error_message = "Set z."\n  }\n}\n',
+    )
+    assert run(tmp_path, "-c") == EXIT_NOT_OKAY
+    assert "unused variables: z" in capsys.readouterr().err
+
+
+def test_validation_reference_to_other_variable_counts(tmp_path: Path) -> None:
+    write(
+        tmp_path,
+        variables_tf='variable "min" {}\n\nvariable "n" {\n  validation {\n'
+        '    condition     = var.n >= var.min\n    error_message = "Too small."\n  }\n}\n',
+        main_tf='output "n" {\n  value = var.n\n}\n',
+    )
+    assert run(tmp_path, "-c") == EXIT_OKAY
+
+
+def test_self_reference_prefix_is_kept(tmp_path: Path) -> None:
+    """``var.z_extra`` inside ``variable "z"`` is a use of ``z_extra``, not ``z``."""
+    write(
+        tmp_path,
+        variables_tf='variable "z_extra" {}\n\nvariable "z" {\n  validation {\n'
+        '    condition     = var.z != var.z_extra\n    error_message = "x"\n  }\n}\n',
+        main_tf='output "z" {\n  value = var.z\n}\n',
+    )
+    assert run(tmp_path, "-c") == EXIT_OKAY
+
+
+@pytest.mark.parametrize("skipped", [".terraform/modules/x", ".git/x", ".terragrunt-cache/x"])
+def test_remove_skips_tool_directories(tmp_path: Path, skipped: str) -> None:
+    write(tmp_path / skipped, modstub_tf="x")
+    write(tmp_path / "sub", modstub_tf="x")
+    assert run(tmp_path, "-r") == EXIT_OKAY
+    assert (tmp_path / skipped / "modstub.tf").exists()
+    assert not (tmp_path / "sub" / "modstub.tf").exists()
