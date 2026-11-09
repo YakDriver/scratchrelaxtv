@@ -12,7 +12,13 @@
 * **Breaking:** Generated variable declarations now use `type = any` and no `default`, so new variables are required until you choose a type and default. Previously every variable got `type = string` and `default = ""`, which was wrong for non-string inputs and made required inputs silently optional ([#250](https://github.com/YakDriver/scratchrelaxtv/issues/250)). This applies to `variables.tf` generation and to `-cf`.
 * **Breaking:** The module stub (`-m`) uses HCL2 references (`bucket = local.bucket` instead of `bucket = "${local.bucket}"`) and no longer adds `providers = { aws = "aws" }`. Terraform warns that quoted references are deprecated and will be removed, and the block assumed the AWS provider ([#87](https://github.com/YakDriver/scratchrelaxtv/issues/87)).
 * Generated `.tf` and `.tfvars` files are now aligned the way `terraform fmt` formats them, so `terraform fmt` makes no further changes.
-* README examples now match actual output. The `-t` and `-e` examples incorrectly said they read `variables.tf`; they read `var.` references from `main.tf`.
+* **Breaking:** By default, *scratchrelaxtv* reads every `*.tf` file in the current directory instead of only `main.tf` (or `variables.tf` for `-m`). Modules split across several files are now checked and generated correctly. `-i` still selects a single file. `-c` counts declarations in any file, not only `variables.tf`.
+* **Breaking:** `-c` exits with status 1 when it finds undeclared or unused variables, so it can fail CI. With `-f`, it still exits 1 after adding declarations, so the change gets reviewed. Warnings now name the module directory.
+* Add pre-commit hooks: `relaxtv-check` (`relaxtv -c`) and `relaxtv-fix` (`relaxtv -cf`). `-c` accepts module directories or `.tf` file paths and checks each module once.
+* Comments (`#`, `//`, `/* */`) are ignored, so a commented-out `var.x` or `variable` block no longer counts. Quoted strings and heredocs are left alone.
+* Output is quiet by default: only warnings are printed, to stderr. `-v` logs each step. Logging is configured by the CLI, not when the library is imported, and `logging.conf` is removed.
+* README shows `pipx install` and `uvx`.
+* README examples now match actual output.
 
 ## 0.6.0 - 2020.05.29
 

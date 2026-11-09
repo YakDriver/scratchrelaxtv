@@ -1,0 +1,15 @@
+- id: relaxtv-check
+  name: scratchrelaxtv check
+  description: Report Terraform variables that are used but not declared, or declared but not used.
+  entry: relaxtv -c
+  language: python
+  files: \.tf$
+  require_serial: true
+
+- id: relaxtv-fix
+  name: scratchrelaxtv fix
+  description: Add declarations for Terraform variables that are used but not declared, and report unused ones.
+  entry: relaxtv -cf
+  language: python
+  files: \.tf$
+  require_serial: true

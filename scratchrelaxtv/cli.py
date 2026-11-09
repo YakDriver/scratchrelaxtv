@@ -17,6 +17,10 @@ Options include:
 from __future__ import annotations
 
 import argparse
+import contextlib
+import copy
+import logging
+import os
 import sys
 from collections.abc import Sequence
 
@@ -26,14 +30,19 @@ import scratchrelaxtv
 def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
     """Parse args list."""
     parser = argparse.ArgumentParser(prog="scratchrelaxtv")
-    parser.add_argument("-i", "--input", help="file to extract vars from")
-    parser.add_argument("-o", "--output", help="file to write extracted vars to")
+    parser.add_argument(
+        "-i",
+        "--input",
+        help="file to read (default: all *.tf files in the current directory; "
+        "template.sh with --template)",
+    )
+    parser.add_argument("-o", "--output", help="file to write to")
     parser.add_argument(
         "-f",
         "--force",
         default=False,
         action="store_true",
-        help="overwrite existing out file",
+        help="overwrite existing output file (with -c: add missing declarations)",
     )
 
     task = parser.add_mutually_exclusive_group()
@@ -57,7 +66,8 @@ def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
         "--check",
         default=False,
         action="store_true",
-        help="check that all vars are listed",
+        help="report undeclared and unused variables and exit 1 if any; "
+        "with -f, also add missing declarations",
     )
     task.add_argument(
         "-e",
@@ -95,12 +105,63 @@ def parse_args(args: Sequence[str] | None) -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="log each step, not only warnings",
+    )
+    parser.add_argument(
         "--version",
         action="version",
         version=f"%(prog)s {scratchrelaxtv.__version__}",
     )
+    parser.add_argument(
+        "paths",
+        nargs="*",
+        metavar="PATH",
+        help="with -c: module directories or .tf files to check; a file means its "
+        "directory (default: the current directory)",
+    )
 
-    return parser.parse_args(args)
+    parsed = parser.parse_args(args)
+    if parsed.paths and not parsed.check:
+        parser.error("PATH arguments are only supported with -c")
+    if parsed.paths and parsed.input:
+        parser.error("-i cannot be combined with PATH arguments")
+    return parsed
+
+
+def _configure_logging(verbose: bool) -> None:
+    """Send warnings (or, with -v, every step) to stderr."""
+    handler = logging.StreamHandler(sys.stderr)
+    if verbose:
+        handler.setFormatter(logging.Formatter("%(asctime)s - %(levelname)s - %(message)s"))
+    else:
+        handler.setFormatter(logging.Formatter("scratchrelaxtv: %(message)s"))
+    logger = scratchrelaxtv.logger
+    logger.handlers.clear()
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO if verbose else logging.WARNING)
+    logger.propagate = False
+
+
+def _module_dirs(paths: list[str]) -> list[str]:
+    """Return the unique module directories for paths, in sorted order."""
+    dirs = {path if os.path.isdir(path) else os.path.dirname(path) or "." for path in paths}
+    return sorted(dirs)
+
+
+def _check(args: argparse.Namespace) -> int:
+    """Check each module directory and return 1 if any has a problem."""
+    if not args.paths:
+        return scratchrelaxtv.Checker(args).extract()
+
+    status = scratchrelaxtv.EXIT_OKAY
+    for directory in _module_dirs(args.paths):
+        with contextlib.chdir(directory):
+            checker = scratchrelaxtv.Checker(copy.copy(args), label=directory)
+            status = max(status, checker.extract())
+    return status
 
 
 def _run(args: argparse.Namespace) -> int:
@@ -113,7 +174,7 @@ def _run(args: argparse.Namespace) -> int:
     if args.modstub:
         extractor = scratchrelaxtv.StubMaker(args)
     elif args.check:
-        extractor = scratchrelaxtv.Checker(args)
+        return _check(args)
     elif args.env or args.tfvars:
         extractor = scratchrelaxtv.EnvGenerator(args)
     elif args.template:
@@ -127,6 +188,7 @@ def _run(args: argparse.Namespace) -> int:
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point for scratchrelaxtv CLI."""
     args = parse_args(sys.argv[1:] if argv is None else argv)
+    _configure_logging(args.verbose)
 
     try:
         return _run(args)
