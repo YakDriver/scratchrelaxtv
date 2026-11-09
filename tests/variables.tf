@@ -18,11 +18,6 @@ variable "create_keystore_bucket" {
   type        = any
 }
 
-variable "now_a_var" {
-  description = ""
-  type        = any
-}
-
 variable "org_ids" {
   description = ""
   type        = any

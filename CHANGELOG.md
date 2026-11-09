@@ -15,7 +15,7 @@
 * **Breaking:** By default, *scratchrelaxtv* reads every `*.tf` file in the current directory instead of only `main.tf` (or `variables.tf` for `-m`). Modules split across several files are now checked and generated correctly. `-i` still selects a single file. `-c` counts declarations in any file, not only `variables.tf`.
 * **Breaking:** `-c` exits with status 1 when it finds undeclared or unused variables, so it can fail CI. With `-f`, it still exits 1 after adding declarations, so the change gets reviewed. Warnings now name the module directory.
 * Add pre-commit hooks: `relaxtv-check` (`relaxtv -c`) and `relaxtv-fix` (`relaxtv -cf`). `-c` accepts module directories or `.tf` file paths and checks each module once.
-* Comments (`#`, `//`, `/* */`) are ignored, so a commented-out `var.x` or `variable` block no longer counts. Quoted strings and heredocs are left alone.
+* References are read only from HCL expressions, including `${...}` and `%{...}` in strings and heredocs. A `var.x` in a comment or in literal text such as `description = "Replaces var.x"` no longer counts, and declarations count only as top-level `variable` blocks.
 * Output is quiet by default: only warnings are printed, to stderr. `-v` logs each step. Logging is configured by the CLI, not when the library is imported, and `logging.conf` is removed.
 * README shows `pipx install` and `uvx`.
 * README examples now match actual output.

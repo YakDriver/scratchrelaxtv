@@ -237,3 +237,42 @@ def test_escaped_template_is_literal(tmp_path: Path) -> None:
 def test_block_comment_separates_tokens(tmp_path: Path, text: str) -> None:
     write(tmp_path, main_tf=text)
     assert run(tmp_path, "-c") == EXIT_OKAY
+
+
+@pytest.mark.parametrize("delimiter", ["EOT", "FINÉ", "終わり", "_end-1"])
+def test_heredoc_delimiters(tmp_path: Path, delimiter: str) -> None:
+    write(
+        tmp_path,
+        main_tf=f'variable "host" {{}}\n\noutput "x" {{\n'
+        f"  value = <<{delimiter}\n# ${{var.host}} // var.literal\n{delimiter}\n}}\n",
+    )
+    assert run(tmp_path, "-c") == EXIT_OKAY
+
+
+@pytest.mark.parametrize(
+    "description",
+    [
+        '"Replaces var.old_name"',
+        '"Use $${var.old_name} literally"',
+        "<<-EOT\n    Replaces var.old_name.\n  EOT",
+    ],
+)
+def test_literal_text_is_not_a_reference(tmp_path: Path, description: str) -> None:
+    write(
+        tmp_path,
+        main_tf=f'variable "name" {{\n  description = {description}\n}}\n\n'
+        'output "x" {\n  value = var.name\n}\n',
+    )
+    assert run(tmp_path, "-c") == EXIT_OKAY
+
+
+def test_interpolation_and_directive_are_references(tmp_path: Path) -> None:
+    write(
+        tmp_path,
+        main_tf='output "x" {\n  value = "${var.a} %{if var.b}y%{endif}"\n}\n',
+    )
+    assert run(tmp_path, "-c") == EXIT_NOT_OKAY
+    assert run(tmp_path, "-cf") == EXIT_NOT_OKAY
+    text = (tmp_path / "variables.tf").read_text(encoding="utf-8")
+    assert 'variable "a"' in text
+    assert 'variable "b"' in text
