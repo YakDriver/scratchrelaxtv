@@ -19,6 +19,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import copy
+import errno
 import logging
 import os
 import sys
@@ -146,7 +147,14 @@ def _configure_logging(verbose: bool) -> None:
 
 
 def _module_dirs(paths: list[str]) -> list[str]:
-    """Return the unique module directories for paths, in sorted order."""
+    """Return the unique module directories for paths, in sorted order.
+
+    Raises FileNotFoundError for a path that doesn't exist, so a mistyped module
+    path fails instead of checking (or, with -f, changing) another module.
+    """
+    for path in paths:
+        if not os.path.exists(path):
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), path)
     dirs = {path if os.path.isdir(path) else os.path.dirname(path) or "." for path in paths}
     return sorted(dirs)
 

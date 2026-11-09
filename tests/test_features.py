@@ -178,3 +178,62 @@ def test_verbose_logs_steps(tmp_path: Path, capsys: pytest.CaptureFixture[str]) 
     err = capsys.readouterr().err
     assert "INFO - generating variables file" in err
     assert "INFO - input files: main.tf" in err
+
+
+# Review regressions (PR #253)
+
+
+def test_heredoc_text_is_not_a_declaration(tmp_path: Path) -> None:
+    write(
+        tmp_path,
+        main_tf='locals {\n  doc = <<EOT\nvariable "a" {}\nEOT\n}\n\n'
+        'output "x" {\n  value = var.a\n}\n',
+    )
+    assert run(tmp_path, "-c") == EXIT_NOT_OKAY
+    assert run(tmp_path, "-cf") == EXIT_NOT_OKAY
+    assert 'variable "a"' in (tmp_path / "variables.tf").read_text(encoding="utf-8")
+
+
+def test_nested_block_is_not_a_declaration(tmp_path: Path) -> None:
+    write(tmp_path, main_tf='locals {\n  variable "a" {}\n}\n\noutput "x" {\n  value = var.a\n}\n')
+    assert run(tmp_path, "-c") == EXIT_NOT_OKAY
+
+
+def test_missing_path_fails_without_checking_cwd(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    write(tmp_path, main_tf='output "x" {\n  value = var.a\n}\n')
+    assert run(tmp_path, "-cf", "missing-module") == EXIT_NOT_OKAY
+    assert "missing-module" in capsys.readouterr().err
+    assert not (tmp_path / "variables.tf").exists()
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        '"${format("https://%s", var.host)}"',
+        '"${var.host}#${"x"}"',
+        '<<-EOT\n    ${format("//%s", var.host)}\n  EOT',
+        '"%{if true}${"//"}${var.host}%{endif}"',
+    ],
+)
+def test_reference_inside_template_with_nested_string(tmp_path: Path, value: str) -> None:
+    write(tmp_path, main_tf=f'variable "host" {{}}\n\noutput "x" {{\n  value = {value}\n}}\n')
+    assert run(tmp_path, "-c") == EXIT_OKAY
+
+
+def test_escaped_template_is_literal(tmp_path: Path) -> None:
+    write(tmp_path, main_tf='output "x" {\n  value = "$${a} # not a comment ${var.a}"\n}\n')
+    assert run(tmp_path, "-c") == EXIT_NOT_OKAY  # var.a used, undeclared
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        'variable/* docs */"a" {}\n\noutput "x" {\n  value = var.a\n}\n',
+        'variable "a" {}\n\noutput "x" {\n  value = [for i in/* d */var.a : i]\n}\n',
+    ],
+)
+def test_block_comment_separates_tokens(tmp_path: Path, text: str) -> None:
+    write(tmp_path, main_tf=text)
+    assert run(tmp_path, "-c") == EXIT_OKAY

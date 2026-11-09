@@ -21,6 +21,7 @@ Example:
 from __future__ import annotations
 
 import argparse
+import functools
 import glob
 import logging
 import os
@@ -32,7 +33,11 @@ EXIT_NOT_OKAY = 1
 
 logger = logging.getLogger(__name__)
 
-_HEREDOC_START = re.compile(r"<<-?([A-Za-z_][A-Za-z0-9_-]*)[ \t]*\n")
+_HEREDOC_START = re.compile(r"<<-?([A-Za-z_][A-Za-z0-9_-]*)[ \t]*\r?\n")
+# Runs of characters that can't start a comment, string, heredoc, or brace.
+_PLAIN_EXPR = re.compile(r'[^#/"<{}]+')
+_PLAIN_QUOTED = re.compile(r'[^\\"\n$%]+')
+_PLAIN_HEREDOC = re.compile(r"[^\n$%]+")
 
 
 def remove_prefix(text: str, prefix: str) -> str:
@@ -52,41 +57,150 @@ def variable_block(name: str) -> str:
     return f'variable "{name}" {{\n{body}}}\n'
 
 
-def strip_comments(text: str) -> str:
-    """Remove HCL comments (``#``, ``//``, ``/* */``), keeping line breaks.
+def _blank(text: str) -> str:
+    """Replace every character except line breaks with a space."""
+    return "".join(c if c == "\n" else " " for c in text)
 
-    Comment markers inside quoted strings (e.g., ``"https://..."``) and heredocs
-    (e.g., a ``#!/bin/bash`` line in ``user_data``) are not comments and are kept,
-    along with any ``var.`` references in them.
+
+class _Scanner:
+    """Split HCL into comment-free code and its top-level (unnested) parts.
+
+    Tracks quoted strings, heredocs, ``${...}``/``%{...}`` template sequences (which
+    may contain nested strings), and brace depth, so comment markers and
+    declaration-like text are only recognized where HCL treats them as such.
     """
-    out: list[str] = []
-    i, n = 0, len(text)
-    while i < n:
-        char = text[i]
-        if char == '"':
-            j = i + 1
-            while j < n and text[j] not in '"\n':
-                j += 2 if text[j] == "\\" else 1
-            out.append(text[i : j + 1])
-            i = j + 1
-        elif text.startswith("<<", i) and (heredoc := _HEREDOC_START.match(text, i)):
-            closing = re.compile(rf"^[ \t]*{re.escape(heredoc[1])}[ \t]*$", re.MULTILINE)
-            end = closing.search(text, heredoc.end())
-            stop = end.end() if end else n
-            out.append(text[i:stop])
-            i = stop
-        elif char == "#" or text.startswith("//", i):
-            newline = text.find("\n", i)
-            i = n if newline < 0 else newline
-        elif text.startswith("/*", i):
-            close = text.find("*/", i + 2)
-            stop = n if close < 0 else close + 2
-            out.append("\n" * text.count("\n", i, stop))
-            i = stop
+
+    def __init__(self, text: str) -> None:
+        self.text = text
+        self.i = 0
+        self.code: list[str] = []
+        self.top: list[str] = []
+
+    def emit(self, text: str, top: bool) -> None:
+        self.code.append(text)
+        self.top.append(text if top else _blank(text))
+
+    def startswith(self, prefix: str) -> bool:
+        return self.text.startswith(prefix, self.i)
+
+    def expression(self, top: bool, in_template: bool) -> None:
+        """Scan expressions until EOF or, in a template sequence, its closing brace."""
+        text, depth = self.text, 0
+        while self.i < len(text):
+            char, here = text[self.i], top and depth == 0
+            if plain := _PLAIN_EXPR.match(text, self.i):
+                self.emit(plain[0], here)
+                self.i = plain.end()
+            elif char == "#" or self.startswith("//"):
+                newline = text.find("\n", self.i)
+                self.emit(" ", here)
+                self.i = len(text) if newline < 0 else newline
+            elif self.startswith("/*"):
+                close = text.find("*/", self.i + 2)
+                stop = len(text) if close < 0 else close + 2
+                self.emit(" " + "\n" * text.count("\n", self.i, stop), here)
+                self.i = stop
+            elif char == '"':
+                self.quoted(here)
+            elif self.startswith("<<") and (heredoc := _HEREDOC_START.match(text, self.i)):
+                self.heredoc(heredoc, here)
+            elif char == "{":
+                self.emit(char, here)
+                depth += 1
+                self.i += 1
+            elif char == "}":
+                self.i += 1
+                if depth == 0 and in_template:
+                    self.emit(char, False)
+                    return
+                depth = max(depth - 1, 0)
+                self.emit(char, top and depth == 0)
+            else:
+                self.emit(char, here)
+                self.i += 1
+
+    def template_part(self, top: bool) -> bool:
+        """Handle an escape or template sequence at the cursor; return True if one was found."""
+        if self.startswith("$${") or self.startswith("%%{"):
+            self.emit(self.text[self.i : self.i + 3], top)
+            self.i += 3
+        elif self.startswith("${") or self.startswith("%{"):
+            self.emit(self.text[self.i : self.i + 2], top)
+            self.i += 2
+            self.expression(top=False, in_template=True)
         else:
-            out.append(char)
-            i += 1
-    return "".join(out)
+            return False
+        return True
+
+    def quoted(self, top: bool) -> None:
+        text = self.text
+        self.emit('"', top)
+        self.i += 1
+        while self.i < len(text):
+            char = text[self.i]
+            if char == "\\":
+                self.emit(text[self.i : self.i + 2], top)
+                self.i += 2
+            elif plain := _PLAIN_QUOTED.match(text, self.i):
+                self.emit(plain[0], top)
+                self.i = plain.end()
+            elif char in '"\n':
+                if char == '"':
+                    self.emit(char, top)
+                    self.i += 1
+                return
+            elif not self.template_part(top):
+                self.emit(char, top)
+                self.i += 1
+
+    def heredoc(self, start: re.Match[str], top: bool) -> None:
+        text = self.text
+        closing = re.compile(rf"[ \t]*{re.escape(start[1])}[ \t]*(?=\r?\n|$)")
+        self.emit(start[0], top)
+        self.i = start.end()
+        line_start = True
+        while self.i < len(text):
+            if line_start and (end := closing.match(text, self.i)):
+                self.emit(end[0], top)
+                self.i = end.end()
+                return
+            char = text[self.i]
+            line_start = False
+            if plain := _PLAIN_HEREDOC.match(text, self.i):
+                self.emit(plain[0], top)
+                self.i = plain.end()
+            elif not self.template_part(top):
+                self.emit(char, top)
+                self.i += 1
+                line_start = char == "\n"
+
+
+@functools.lru_cache(maxsize=256)
+def _scan(text: str) -> tuple[str, str]:
+    """Return (code without comments, top-level parts) for HCL text."""
+    scanner = _Scanner(text)
+    scanner.expression(top=True, in_template=False)
+    return "".join(scanner.code), "".join(scanner.top)
+
+
+def strip_comments(text: str) -> str:
+    """Replace HCL comments (``#``, ``//``, ``/* */``) with spaces, keeping line breaks.
+
+    Comment markers inside quoted strings (e.g., ``"https://..."``), template
+    sequences (``"${format("https://%s", var.host)}"``), and heredocs (e.g., a
+    ``#!/bin/bash`` line in ``user_data``) are not comments and are kept.
+    """
+    return _scan(text)[0]
+
+
+def top_level(text: str) -> str:
+    """Return only the unnested, uncommented parts of HCL; everything else becomes spaces.
+
+    Block headers such as ``variable "a" {`` are kept, while text in block bodies,
+    strings used as values, and heredocs is blanked, so it can't look like a
+    declaration.
+    """
+    return _scan(text)[1]
 
 
 def remove_files() -> None:
@@ -169,14 +283,19 @@ class BassExtractor:
         tf_vars: list[str] = var_pattern.findall(haystack)
         return list(dict.fromkeys(tf_vars))
 
-    def read(self, filenames: list[str]) -> str:
-        """Return the concatenated contents of files, without comments if HCL."""
-        text = "\n".join(self.get_file_contents(name) for name in filenames)
-        return strip_comments(text) if self.hcl_input else text
+    def read(self, filenames: list[str], top: bool = False) -> str:
+        """Return the contents of files, without comments if HCL.
 
-    def find_vars_in_file(self, regex: str) -> None:
+        With ``top``, return only the top level of each HCL file (see :func:`top_level`).
+        """
+        texts = [self.get_file_contents(name) for name in filenames]
+        if self.hcl_input:
+            texts = [top_level(t) if top else strip_comments(t) for t in texts]
+        return "\n".join(texts)
+
+    def find_vars_in_file(self, regex: str, top: bool = False) -> None:
         """Extract vars from the input files."""
-        self.tf_vars = self.find_vars(self.read(self.input_files), regex)
+        self.tf_vars = self.find_vars(self.read(self.input_files, top), regex)
 
         if self.args.asc:
             self.tf_vars.sort()
@@ -242,7 +361,7 @@ class StubMaker(BassExtractor):
 
     def extract(self) -> int:
         """Extract declared variables from .tf files."""
-        self.find_vars_in_file(self.variable_regex)
+        self.find_vars_in_file(self.variable_regex, top=True)
         self.write_file()
 
         return EXIT_OKAY
@@ -332,7 +451,7 @@ class Checker(BassExtractor):
         declaration_files = list(self.input_files)
         if os.path.isfile(self.args.output) and self.args.output not in declaration_files:
             declaration_files.append(self.args.output)
-        declared = self.find_vars(self.read(declaration_files), self.variable_regex)
+        declared = self.find_vars(self.read(declaration_files, top=True), self.variable_regex)
 
         return {
             "undeclared": [v for v in uses if v not in declared],
