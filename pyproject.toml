@@ -33,11 +33,11 @@ classifiers = [
 
 [project.optional-dependencies]
 dev = [
-    "bump-my-version==1.6.7",
+    "bump-my-version==1.8.1",
     "mypy==2.4.1",
     "pytest==9.2.0",
     "pytest-cov==7.1.0",
-    "ruff==0.17.3",
+    "ruff==0.17.4",
 ]
 
 [project.scripts]
